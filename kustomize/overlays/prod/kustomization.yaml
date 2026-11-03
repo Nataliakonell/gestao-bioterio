@@ -1,0 +1,17 @@
+labels:
+  - includeSelectors: true
+    pairs:
+      env: prod
+
+namespace: prod
+
+commonAnnotations:
+  note: Ambiente de producao da sigbio
+
+resources:
+  - ../../base
+
+patches:
+  - path: apideployment.yaml
+  - path: frontdeployment.yaml
+  - path: ingress.yaml

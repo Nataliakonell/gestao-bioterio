@@ -1,0 +1,100 @@
+# Visual Studio
+.vs/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.visualstudio/
+
+# Build results
+bin/
+obj/
+Debug/
+Release/
+x64/
+x86/
+[Oo]bj/
+[Bb]in/
+[Dd]ebug/
+[Rr]elease/
+[Bb]uild/
+[Oo]utput/
+
+# NuGet
+*.nupkg
+*.snupkg
+*.nuget.props
+*.nuget.targets
+packages/
+.nuget/
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+
+# C# files
+*.cs.bak
+*.csproj.user
+
+# Node/React
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+dist/
+build/
+coverage/
+.cache/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Backend/run.ps1
+Backend/run.bat
+Backend/run.sh
+
+# Testing
+test-results/
+coverage/
+*.trx
+
+# Log files
+*.log
+Logs/
+
+# Rider
+.idea/
+*.sln.iml
+riderModule.xml
+.rider/
+
+# Local Database
+*.mdf
+*.ldf
+*.db
+*.db-shm
+*.db-wal
+
+# Miscellaneous
+.env
+.env.local
+appsettings.local.json
+appsettings.Development.json
+Thumbs.db
+Desktop.ini
+
+

@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name:  frontsigbio
+  labels:
+    app:  frontsigbio
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontsigbio
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: frontsigbio

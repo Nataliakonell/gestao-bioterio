@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name:  apisigbio
+  labels:
+    app:  apisigbio
+    app.newrelic.instrumentation: dotnet
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: apisigbio
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: apisigbio

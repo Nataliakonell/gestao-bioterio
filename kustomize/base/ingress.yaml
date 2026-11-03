@@ -1,0 +1,30 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sigbio-ingress
+  labels:
+    app.kubernetes.io/name: sigbio-ingress
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - homologacao-kubernetes.ucdb.br
+    secretName: ucdb-cert
+  rules:
+  - host: homologacao-kubernetes.ucdb.br
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontsigbio-service
+            port:
+              number: 80
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: apisigbio-service
+            port:
+              number: 8080

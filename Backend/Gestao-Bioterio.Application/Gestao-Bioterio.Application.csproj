@@ -1,0 +1,73 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Gestao_Bioterio.Application</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Features\Eventos\Command\CreateEventoCommand\**" />
+    <Compile Remove="Features\Eventos\Command\DeleteEventoCommand\**" />
+    <Compile Remove="Features\Eventos\Command\UpdateEventoCommand\**" />
+    <Compile Remove="Features\LocalOrigem\**" />
+    <EmbeddedResource Remove="Features\Eventos\Command\CreateEventoCommand\**" />
+    <EmbeddedResource Remove="Features\Eventos\Command\DeleteEventoCommand\**" />
+    <EmbeddedResource Remove="Features\Eventos\Command\UpdateEventoCommand\**" />
+    <EmbeddedResource Remove="Features\LocalOrigem\**" />
+    <None Remove="Features\Eventos\Command\CreateEventoCommand\**" />
+    <None Remove="Features\Eventos\Command\DeleteEventoCommand\**" />
+    <None Remove="Features\Eventos\Command\UpdateEventoCommand\**" />
+    <None Remove="Features\LocalOrigem\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Features\Especies\Command\DeleteEspecie\DeleteSpecieCommand.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="12.0.1" />
+    <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.0.1" />
+    <PackageReference Include="FluentValidation" Version="12.1.1" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
+    <PackageReference Include="MediatR" Version="12.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Gestao-Bioterio.Domain\Gestao-Bioterio.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Features\AnimalLocalizacoes\Queries\GetAllAnimalLocalizacao\" />
+    <Folder Include="Features\AnimalLocalizacoes\Queries\GetAnimalLocalizacaoDetail\" />
+    <Folder Include="Features\BiometriaAnimais\Command\UpdateBiometriaAnimal\" />
+    <Folder Include="Features\DocumentosEventos\Command\CreateDocumentoEventoCommand\" />
+    <Folder Include="Features\DocumentosEventos\Command\DeleteDocumentoEventoCommand\" />
+    <Folder Include="Features\DocumentosEventos\Command\UpdateDocumentoEventoCommand\" />
+    <Folder Include="Features\DocumentosEventos\Queries\GetAllDocumentoEvento\" />
+    <Folder Include="Features\DocumentosEventos\Queries\GetDocumentoEventoDetail\" />
+    <Folder Include="Features\EventosAnimais\Command\CreateEventoAnimalCommand\" />
+    <Folder Include="Features\EventosAnimais\Command\DeleteEventoAnimalCommand\" />
+    <Folder Include="Features\EventosAnimais\Command\UpdateEventoAnimalCommand\" />
+    <Folder Include="Features\EventosAnimais\Queries\GetAllEventoAnimal\" />
+    <Folder Include="Features\EventosAnimais\Queries\GetAnimalDetail\" />
+    <Folder Include="Features\Eventos\Queries\GetAllEvento\" />
+    <Folder Include="Features\Eventos\Queries\GetEventoDetail\" />
+    <Folder Include="Features\Funcionalidades\Queries\" />
+    <Folder Include="Features\MovimentacoesAnimais\Command\CreateMovimentacaoAnimalCommand\" />
+    <Folder Include="Features\MovimentacoesAnimais\Command\DeleteMovimentacaoAnimalCommand\" />
+    <Folder Include="Features\MovimentacoesAnimais\Command\UpdateMovimentacaoAnimalCommand\" />
+    <Folder Include="Features\MovimentacoesAnimais\Queries\GetAllMovimentacaoAnimal\" />
+    <Folder Include="Features\MovimentacoesAnimais\Queries\GetMovimentacaoAnimalDetail\" />
+    <Folder Include="Features\Perfis\Command\DeletePerfil\" />
+    <Folder Include="Features\Perfis\Command\UpdatePerfil\" />
+    <Folder Include="Features\Perfis\Queries\" />
+  </ItemGroup>
+
+</Project>

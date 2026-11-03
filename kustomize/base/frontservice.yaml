@@ -1,0 +1,14 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name:  frontsigbio-service
+  labels:
+    app:  frontsigbio
+spec:
+  selector:
+    app:  frontsigbio
+  type:  ClusterIP
+  ports:
+  - name:  frontsigbio
+    port:  80
+    targetPort:  80

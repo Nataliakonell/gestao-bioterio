@@ -1,0 +1,19 @@
+labels:
+  - includeSelectors: true
+    pairs: 
+      env: dev
+      version: "1.02"
+      org: ucdb.br
+      team: devops
+
+namespace: staging
+
+commonAnnotations:
+  note: Ambiente de homologacao da sigbio
+
+resources:
+  - apideployment.yaml
+  - apiservice.yaml
+  - frontdeployment.yaml
+  - frontservice.yaml
+  - ingress.yaml

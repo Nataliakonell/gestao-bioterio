@@ -1,0 +1,400 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --radius: 0.5rem;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 230 12% 9%;
+    --foreground: 210 20% 98%;
+    --card: 235 15% 14%;
+    --card-foreground: 210 20% 98%;
+    --popover: 235 15% 14%;
+    --popover-foreground: 210 40% 98%;
+    --secondary: 235 12% 18%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 235 12% 18%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 235 14% 20%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62.8% 40%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 235 12% 20%;
+    --input: 235 12% 20%;
+    --sidebar-background: 235 14% 10%;
+    --sidebar-foreground: 220 15% 90%;
+    --sidebar-accent: 235 12% 18%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 235 12% 16%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    margin: 0;
+    min-height: 100vh;
+  }
+}
+
+/* Modo escuro: superficies brancas fixas nas telas passam a usar o token de card. */
+@layer components {
+  .dark .bg-white { background-color: hsl(var(--card)) !important; }
+  .dark .hover\:bg-white:hover { background-color: hsl(var(--card)) !important; }
+  .dark .text-black { color: hsl(var(--foreground)) !important; }
+  .dark .shadow-sm, .dark .shadow, .dark .shadow-md, .dark .shadow-lg, .dark .shadow-xl, .dark .shadow-2xl { --tw-shadow-color: rgb(0 0 0 / 0.5); }
+
+  /* ------------------------------------------------------------------
+     Contraste e Legibilidade no Tema Claro (WCAG AA ≥ 4.5:1)
+     Garante que cabeçalhos e células de tabelas, inputs, placeholders,
+     rótulos de filtros e modais tenham alto contraste sobre o fundo branco.
+     ------------------------------------------------------------------ */
+  :root:not(.dark) {
+    /* Cabeçalhos de tabelas (th) no tema claro: cinza escuro nítido */
+    th,
+    .text-zinc-200,
+    .text-zinc-300 {
+      color: #374151 !important; /* gray-700 (contraste > 9:1 em fundo branco) */
+    }
+
+    /* Linhas e dados das tabelas (td) e textos padrão que usavam zinc-100 */
+    td,
+    .text-zinc-100 {
+      color: #111827 !important; /* gray-900 (contraste > 12:1) */
+    }
+
+    /* Textos secundários, IDs, legendas que usavam tons 400 */
+    .text-gray-400,
+    .text-slate-400,
+    .text-zinc-400,
+    .text-neutral-400 {
+      color: #4b5563 !important; /* gray-600 (contraste > 7:1) */
+    }
+
+    /* Textos com tons 500 */
+    .text-gray-500,
+    .text-slate-500,
+    .text-zinc-500,
+    .text-neutral-500,
+    .text-muted-foreground {
+      color: #374151 !important; /* gray-700 */
+    }
+
+    /* Inputs e textareas no tema claro: texto digitado bem escuro */
+    input:not([type="checkbox"]):not([type="radio"]),
+    textarea,
+    select {
+      color: #111827 !important; /* gray-900 */
+    }
+
+    /* Placeholders nítidos e legíveis (WCAG AA) */
+    input::placeholder,
+    textarea::placeholder,
+    .placeholder\:text-gray-400::placeholder,
+    .placeholder\:text-slate-400::placeholder,
+    .placeholder\:text-zinc-400::placeholder,
+    .placeholder\:text-gray-500::placeholder {
+      color: #6b7280 !important; /* gray-500 (contraste 4.8:1 no fundo branco) */
+      opacity: 1 !important;
+    }
+
+    /* Rótulos e itens em filtros, popovers e modais */
+    label,
+    .popover-content label,
+    [data-slot="popover-content"] label {
+      color: #1f2937 !important; /* gray-800 */
+    }
+
+    /* Títulos de seções dentro de modais e painéis de filtro */
+    .popover-content h3,
+    [data-slot="popover-content"] h3,
+    .popover-content h4,
+    [data-slot="popover-content"] h4 {
+      color: #111827 !important; /* gray-900 */
+    }
+
+    /* Ícones dentro de botões de ordenação e filtros no tema claro */
+    th svg,
+    .text-zinc-400 svg,
+    .text-zinc-300 svg {
+      color: #4b5563 !important;
+    }
+  }
+
+  /* ------------------------------------------------------------------
+     Acessibilidade (WCAG AA ≥ 4.5:1) no modo escuro.
+     Muitas telas usam tons fixos de cinza (text-gray-500, text-gray-700…)
+     pensados para fundo branco. No tema escuro eles são remapeados para
+     tons claros.
+     ------------------------------------------------------------------ */
+  .dark .text-gray-900, .dark .text-slate-900, .dark .text-zinc-900, .dark .text-neutral-900,
+  .dark .text-gray-800, .dark .text-slate-800, .dark .text-zinc-800, .dark .text-neutral-800 { color: #f4f4f5; } /* zinc-100 */
+  .dark .text-gray-700, .dark .text-slate-700, .dark .text-zinc-700, .dark .text-neutral-700 { color: #e4e4e7; } /* zinc-200 */
+  .dark .text-gray-600, .dark .text-slate-600, .dark .text-zinc-600, .dark .text-neutral-600 { color: #d4d4d8; } /* zinc-300 */
+  .dark .text-gray-500, .dark .text-slate-500, .dark .text-zinc-500, .dark .text-neutral-500,
+  .dark .text-gray-400, .dark .text-slate-400, .dark .text-zinc-400, .dark .text-neutral-400 { color: #a1a1aa; } /* zinc-400 */
+
+  .dark .hover\:text-gray-900:hover, .dark .hover\:text-gray-800:hover,
+  .dark .hover\:text-gray-700:hover, .dark .hover\:text-gray-600:hover { color: #ffffff; }
+
+  /* Cor de destaque nos cantos esquerdos (border-l) em Dark Mode */
+  .dark .border-l-blue-600,
+  .dark .border-l-blue-800,
+  .dark .border-l-blue-500,
+  .dark .border-l-brand {
+    border-left-color: var(--brand-blue, hsl(var(--primary))) !important;
+  }
+
+  /* Placeholders legíveis em qualquer campo (Input, Textarea, busca, datas) */
+  .dark input::placeholder,
+  .dark textarea::placeholder,
+  .dark .placeholder\:text-gray-400::placeholder,
+  .dark .placeholder\:text-gray-500::placeholder,
+  .dark .placeholder\:text-zinc-400::placeholder { color: #a1a1aa !important; opacity: 1 !important; }
+
+  /* Valor digitado em campos e ícone nativo do datepicker visível no escuro */
+  .dark input:not([type="checkbox"]):not([type="radio"]),
+  .dark textarea { color: #f4f4f5 !important; }
+  .dark input[type="date"],
+  .dark input[type="datetime-local"],
+  .dark input[type="time"],
+  .dark input[type="month"] { color-scheme: dark; }
+
+  /* Tabelas: cabeçalho cinza-claro de alto contraste e células claras */
+  .dark th { color: #e4e4e7 !important; font-weight: 500 !important; } /* text-zinc-200 */
+  .dark td { color: #f4f4f5 !important; } /* text-zinc-100 */
+
+  /* Layout principal garantindo opacidade plena */
+  .dark main,
+  .dark [data-sidebar="inset"] {
+    opacity: 1 !important;
+  }
+
+  /* Superfícies cinza-claras fixas */
+  .dark .bg-gray-50, .dark .bg-slate-50, .dark .bg-zinc-50 { background-color: hsl(var(--muted) / 0.5); }
+  .dark .bg-gray-100, .dark .bg-slate-100, .dark .bg-zinc-100 { background-color: hsl(var(--muted)); }
+  .dark .bg-gray-200, .dark .bg-slate-200, .dark .bg-zinc-200 { background-color: hsl(var(--accent)); }
+  .dark .hover\:bg-gray-50:hover, .dark .hover\:bg-gray-100:hover,
+  .dark .hover\:bg-slate-50:hover, .dark .hover\:bg-slate-100:hover { background-color: hsl(var(--accent)); }
+  .dark .border-gray-100, .dark .border-gray-200, .dark .border-gray-300 { border-color: hsl(var(--border)); }
+
+  /* Menus suspensos (Dropdown / Popover / Select Content) */
+  .dark .popover-content,
+  .dark .select-content,
+  .dark .dropdown-content,
+  .dark [data-slot="popover-content"],
+  .dark [data-slot="select-content"],
+  .dark [data-slot="dropdown-menu-content"] {
+    background-color: #1e1f29 !important;
+    color: #f1f5f9 !important;
+    border-color: hsl(var(--border)) !important;
+  }
+
+  /* Itens de menu suspenso / select / combobox / dropdown */
+  .dark [data-slot="select-item"],
+  .dark [data-slot="dropdown-menu-item"],
+  .dark [role="option"] {
+    color: #e2e8f0 !important; /* text-slate-200 legível para itens não selecionados */
+  }
+
+  .dark [data-slot="select-item"]:hover,
+  .dark [data-slot="select-item"]:focus,
+  .dark [data-slot="select-item"][data-highlighted],
+  .dark [data-slot="dropdown-menu-item"]:hover,
+  .dark [data-slot="dropdown-menu-item"]:focus,
+  .dark [data-slot="dropdown-menu-item"][data-highlighted],
+  .dark [role="option"]:hover,
+  .dark [role="option"]:focus,
+  .dark [role="option"][data-highlighted] {
+    background-color: hsl(var(--accent)) !important;
+    color: #ffffff !important;
+  }
+
+  .dark [data-slot="select-item"][data-state="checked"],
+  .dark [data-slot="dropdown-menu-item"][data-state="checked"] {
+    color: #ffffff !important;
+  }
+
+  /* React-Select / CreatableSelect / Combobox / Autocomplete */
+  .dark .react-select__control {
+    background-color: hsl(var(--card)) !important;
+    border-color: hsl(var(--border)) !important;
+    color: hsl(var(--foreground)) !important;
+  }
+
+  .dark .react-select__control:hover {
+    border-color: hsl(var(--ring)) !important;
+  }
+
+  .dark .react-select__control--is-focused {
+    border-color: hsl(var(--ring)) !important;
+    box-shadow: 0 0 0 1px hsl(var(--ring)) !important;
+  }
+
+  .dark .react-select__menu,
+  .dark .react-select__menu-portal,
+  .dark .react-select__menu-list {
+    background-color: #1e1f29 !important;
+    border-color: hsl(var(--border)) !important;
+  }
+
+  .dark .react-select__option {
+    background-color: transparent !important;
+    color: #e2e8f0 !important; /* text-slate-200 */
+  }
+
+  .dark .react-select__option--is-focused {
+    background-color: hsl(var(--accent)) !important;
+    color: #ffffff !important;
+  }
+
+  .dark .react-select__option--is-selected {
+    background-color: var(--brand-blue, #2563eb) !important;
+    color: #ffffff !important;
+  }
+
+  .dark .react-select__single-value {
+    color: #f1f5f9 !important;
+  }
+
+  .dark .react-select__placeholder {
+    color: hsl(var(--muted-foreground)) !important;
+  }
+
+  .dark .react-select__input-container,
+  .dark .react-select__input {
+    color: #f1f5f9 !important;
+  }
+
+  /* Select nativo */
+  .dark select {
+    background-color: hsl(var(--card)) !important;
+    color: hsl(var(--foreground)) !important;
+    border-color: hsl(var(--border)) !important;
+  }
+
+  .dark select option {
+    background-color: #1e1f29 !important;
+    color: #e2e8f0 !important;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+}
+
+.document-page ul,
+.document-body ul,
+.jodit-wysiwyg ul {
+  list-style-type: disc !important;
+  padding-left: 1.75rem !important;
+  margin: 0.5rem 0 !important;
+}
+
+.document-page ol,
+.document-body ol,
+.jodit-wysiwyg ol {
+  list-style-type: decimal !important;
+  padding-left: 1.75rem !important;
+  margin: 0.5rem 0 !important;
+}
+
+.document-page li,
+.document-body li,
+.jodit-wysiwyg li {
+  display: list-item !important;
+}
+
+/* ------------------------------------------------------------------
+   Fidelidade Visual de Documentos e WYSIWYG (Impressão / PDF / Preview)
+   Força fundo branco estrito e texto escuro mesmo com sistema em Dark Mode.
+   ------------------------------------------------------------------ */
+.document-paper,
+.document-paper-sheet,
+.document-page,
+.document-header-preview {
+  background-color: #ffffff !important;
+  color: #0f172a !important; /* text-slate-900 */
+}
+
+.dark .document-paper,
+.dark .document-paper-sheet,
+.dark .document-page,
+.dark .document-header-preview {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+.document-paper *,
+.document-paper-sheet *,
+.document-page *,
+.document-header-preview * {
+  --tw-text-opacity: 1;
+}
+
+.dark .document-paper .document-body,
+.dark .document-paper-sheet .document-body,
+.dark .document-page .document-body {
+  color: #0f172a !important;
+}
+
+/* Editor WYSIWYG Jodit - Garantir folha branca e texto escuro de alto contraste */
+.jodit-container {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+.jodit-workplace {
+  background-color: #ffffff !important;
+}
+
+.jodit-wysiwyg {
+  background-color: #ffffff !important;
+  color: #1a1a1a !important;
+}
+
+.dark .jodit-container .jodit-wysiwyg,
+.dark .jodit-wysiwyg,
+.dark .jodit-wysiwyg * {
+  color: #1a1a1a !important;
+}
+
+.dark .jodit-wysiwyg iframe,
+.jodit-wysiwyg iframe {
+  background-color: #ffffff !important;
+}
+

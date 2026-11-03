@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name:  frontsigbio
+  labels:
+    app:  frontsigbio
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontsigbio
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app:  frontsigbio
+    spec:
+      containers:
+      - image:  admucdbcr.azurecr.io/sigbio-frontend:28
+        name:  frontsigbio
+        resources:
+          requests:
+            cpu: "20m"
+            memory: "55M"
+          limits:
+            cpu: "1000m"
+            memory: "1G"
+        ports:
+        - containerPort:  80
+          name:  frontsigbio

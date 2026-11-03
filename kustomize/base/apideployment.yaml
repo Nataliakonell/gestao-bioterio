@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apisigbio
+  labels:
+    app: apisigbio
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: apisigbio
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: apisigbio
+    spec:
+      containers:
+      - image: admucdbcr.azurecr.io/sigbio-api:28
+        name: apisigbio
+        env:
+          - name: ConnectionStrings__DefaultConnection
+            valueFrom:
+              secretKeyRef:
+                name: connectionstrings
+                key: appDb_connectionstring
+          - name: BlobStorage__ConnectionString
+            valueFrom:
+              secretKeyRef:
+                name: blobconnection
+                key: connectionstring
+          - name: ApiUrl
+            value: "sigbio.ucdb.br/api"
+          - name: FrontendUrl
+            value: "sigbio.ucdb.br"
+        resources:
+          requests:
+            cpu: "20m"
+            memory: "55M"
+          limits:
+            cpu: "1000m"
+            memory: "1G"
+        ports:
+        - containerPort: 8080
+          name: apisigbio

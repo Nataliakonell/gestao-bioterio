@@ -1,0 +1,55 @@
+trigger: none
+
+resources:
+  pipelines:
+    - pipeline: source
+      source: gestao-bioterio
+      trigger:
+        branches:
+          include:
+            - master
+
+variables:
+  - group: azure
+  - name: vmImageName
+    value: "ubuntu-latest"
+
+stages:
+  - stage: Deploy_K8s
+    displayName: "🚀 Deploy to Kubernetes"
+    pool: 
+      vmImage: $(vmImageName)
+    variables:
+      - group: azure
+    jobs:
+      - deployment: Deploy_K8s_Job
+        displayName: "Deploy via Kustomize"
+        environment: sigbio-azure
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self 
+
+                - task: KubernetesManifest@1
+                  displayName: "Bake Kustomize Manifests"
+                  name: bake
+                  inputs:
+                    action: 'bake'
+                    renderType: 'kustomize'
+                    kustomizationPath: 'kustomize/overlays/prod'
+                    containers: |
+                      $(registry_server)/sigbio-api:$(resources.pipeline.source.runName)
+                      $(registry_server)/sigbio-frontend:$(resources.pipeline.source.runName)
+
+                - task: KubernetesManifest@1
+                  displayName: "Deploy to AKS"
+                  inputs:
+                    action: 'deploy'
+                    connectionType: 'kubernetesServiceConnection'
+                    kubernetesServiceConnection: 'k8s-producao-connection' 
+                    namespace: 'prod' 
+                    manifests: $(bake.manifestsBundle)
+                    rolloutStatusTimeout: '300'
+
+

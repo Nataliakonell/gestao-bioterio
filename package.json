@@ -1,0 +1,13 @@
+{
+  "name": "gestao-bioterio-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix Frontend run dev",
+    "dev:front": "npm --prefix Frontend run dev:front",
+    "dev:back": "dotnet watch --project Backend/Gestao-Bioterio.Api --launch-profile http",
+    "dev:initdata": "npm --prefix Frontend run dev:initdata",
+    "build": "npm --prefix Frontend run build",
+    "test": "dotnet test Backend/Gestao-Bioterio.A2ATests/Gestao-Bioterio.A2ATests.csproj"
+  }
+}

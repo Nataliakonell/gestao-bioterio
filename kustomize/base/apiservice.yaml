@@ -1,0 +1,14 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name:  apisigbio-service
+  labels:
+    app:  apisigbio
+spec:
+  selector:
+    app:  apisigbio
+  type:  ClusterIP
+  ports:
+  - name:  apisigbio
+    port:  8080
+    targetPort:  8080
