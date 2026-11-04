@@ -1,12 +1,13 @@
-import React from "react"
+import React, { useState } from "react"
 import { FormField } from "@/components/ui/form-field"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { DatePicker } from "@/components/ui/date-picker"
-import { Trash2, AlertCircle } from "lucide-react"
+import { Trash2, AlertCircle, Loader2, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { toast } from "sonner"
 
 export interface DadosTransporteFauna {
   // Seção 1: Destinatário
@@ -42,6 +43,7 @@ interface FormularioTransporteFaunaProps {
   animaisSelecionados: Array<{
     id: number
     numeroRegistro?: string
+    numeroChip?: string
     especieNome?: string
     genero?: string
   }>
@@ -54,6 +56,61 @@ export function FormularioTransporteFauna({
   animaisSelecionados,
   onRemoverAnimal
 }: FormularioTransporteFaunaProps) {
+  const [buscandoCep, setBuscandoCep] = useState(false)
+
+  const formatarCep = (valor: string) => {
+    const limpo = valor.replace(/\D/g, "").slice(0, 8)
+    if (limpo.length > 5) {
+      return `${limpo.slice(0, 5)}-${limpo.slice(5)}`
+    }
+    return limpo
+  }
+
+  const consultarCep = async (cepBruto: string) => {
+    const cepLimpo = cepBruto.replace(/\D/g, "")
+    if (cepLimpo.length !== 8) return
+
+    try {
+      setBuscandoCep(true)
+      const res = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`)
+      const data = await res.json()
+
+      if (data.erro) {
+        toast.error("CEP não encontrado.")
+        return
+      }
+
+      // Preenche os campos de endereço automaticamente
+      const updates: Partial<DadosTransporteFauna> = {}
+      if (data.logradouro) {
+        updates.destEndereco = data.logradouro
+      }
+      if (data.bairro) {
+        updates.destBairro = data.bairro
+      }
+      if (data.localidade && data.uf) {
+        updates.destMunicipio = `${data.localidade} / ${data.uf}`
+      }
+
+      onChange(updates)
+      toast.success("Endereço preenchido automaticamente pelo CEP!")
+    } catch (error) {
+      console.error("Erro ao consultar CEP:", error)
+      toast.error("Não foi possível consultar o CEP no momento.")
+    } finally {
+      setBuscandoCep(false)
+    }
+  }
+
+  const handleCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatado = formatarCep(e.target.value)
+    onChange({ destCep: formatado })
+
+    const limpo = formatado.replace(/\D/g, "")
+    if (limpo.length === 8) {
+      consultarCep(limpo)
+    }
+  }
   return (
     <div className="space-y-6">
       {/* SEÇÃO 1: DESTINATÁRIO */}
@@ -64,7 +121,7 @@ export function FormularioTransporteFauna({
 
         <div>
           <Label className="text-xs font-semibold text-slate-700 mb-2 block">
-            Tipo de Destinatário <span className="text-red-500">*</span>
+            Tipo de Destinatário
           </Label>
           <RadioGroup
             value={dados.destTipo}
@@ -91,7 +148,7 @@ export function FormularioTransporteFauna({
         </div>
 
         {dados.destTipo === "Outros" && (
-          <FormField label="Especifique outro destinatário" required>
+          <FormField label="Especifique outro destinatário">
             <Input
               value={dados.destOutrosEspecificar}
               onChange={(e) => onChange({ destOutrosEspecificar: e.target.value })}
@@ -102,7 +159,7 @@ export function FormularioTransporteFauna({
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-          <FormField label="Nome / Razão Social" required className="col-span-full md:col-span-2">
+          <FormField label="Nome / Razão Social" className="col-span-full md:col-span-2">
             <Input
               value={dados.destNome}
               onChange={(e) => onChange({ destNome: e.target.value })}
@@ -111,7 +168,7 @@ export function FormularioTransporteFauna({
             />
           </FormField>
 
-          <FormField label="CNPJ / CPF" required>
+          <FormField label="CNPJ / CPF">
             <Input
               value={dados.destCpfCnpj}
               onChange={(e) => onChange({ destCpfCnpj: e.target.value })}
@@ -148,12 +205,30 @@ export function FormularioTransporteFauna({
           </FormField>
 
           <FormField label="CEP">
-            <Input
-              value={dados.destCep}
-              onChange={(e) => onChange({ destCep: e.target.value })}
-              placeholder="79000-000"
-              className="bg-white"
-            />
+            <div className="relative flex items-center">
+              <Input
+                value={dados.destCep}
+                onChange={handleCepChange}
+                placeholder="79000-000"
+                maxLength={9}
+                className="bg-white pr-9"
+              />
+              <div className="absolute right-2.5 text-slate-400">
+                {buscandoCep ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => consultarCep(dados.destCep)}
+                    title="Buscar endereço por CEP"
+                    className="hover:text-blue-600 transition-colors p-0.5"
+                    tabIndex={-1}
+                  >
+                    <Search className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
           </FormField>
 
           <FormField label="Telefone">
@@ -209,7 +284,7 @@ export function FormularioTransporteFauna({
 
         {(dados.objetoTipo === "Outros (especificar)" ||
           dados.objetoTipo.includes("especificar")) && (
-          <FormField label="Especifique o objeto *" required>
+          <FormField label="Especifique o objeto">
             <Input
               value={dados.objetoOutrosEspecificar}
               onChange={(e) => onChange({ objetoOutrosEspecificar: e.target.value })}
@@ -226,9 +301,6 @@ export function FormularioTransporteFauna({
           <h4 className="font-bold text-slate-800 text-sm">
             3. DESCRIÇÃO DO MATERIAL (tipo, sexo, nome científico, quantidade, marcação, etc.)
           </h4>
-          <span className="text-xs font-semibold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
-            {animaisSelecionados.length} animal(is) selecionado(s)
-          </span>
         </div>
 
         {animaisSelecionados.length === 0 ? (
@@ -251,8 +323,8 @@ export function FormularioTransporteFauna({
                     <span className="text-slate-600 mr-2 font-medium">
                       {animal.genero || "Gênero n/i"}
                     </span>
-                    <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[11px] font-mono">
-                      Chip/Reg: {animal.numeroRegistro || "Sem chip"}
+                    <span className="bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-200 border border-slate-200 dark:border-zinc-700 px-1.5 py-0.5 rounded text-[11px] font-mono">
+                      Chip: {animal.numeroChip || animal.numeroRegistro || "Sem chip"}
                     </span>
                   </div>
                 </div>
@@ -283,7 +355,7 @@ export function FormularioTransporteFauna({
 
         <div>
           <Label className="text-xs font-semibold text-slate-700 mb-2 block">
-            Meio de Transporte <span className="text-red-500">*</span>
+            Meio de Transporte
           </Label>
           <RadioGroup
             value={dados.transporteMeio}
@@ -307,12 +379,11 @@ export function FormularioTransporteFauna({
         </div>
 
         <FormField
-          label="Especifique Meio de transporte e dados do transportador *"
-          required
+          label="Especifique Meio de transporte e dados do transportador"
           description="Campos editáveis com os motoristas credenciados e veículos cadastrados na UCDB"
         >
           <Textarea
-            rows={5}
+            rows={6}
             value={dados.transporteCondutoresVeiculos}
             onChange={(e) => onChange({ transporteCondutoresVeiculos: e.target.value })}
             className="bg-white font-mono text-xs leading-relaxed"
@@ -320,7 +391,7 @@ export function FormularioTransporteFauna({
         </FormField>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <FormField label="Rodovias utilizadas (Rota) *" required>
+          <FormField label="Rodovias utilizadas (Rota)">
             <Input
               value={dados.transporteRota}
               onChange={(e) => onChange({ transporteRota: e.target.value })}
@@ -329,7 +400,7 @@ export function FormularioTransporteFauna({
             />
           </FormField>
 
-          <FormField label="Data do transporte a ser efetuado *" required>
+          <FormField label="Data do transporte a ser efetuado">
             <Input
               value={dados.transporteData}
               onChange={(e) => onChange({ transporteData: e.target.value })}

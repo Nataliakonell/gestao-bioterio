@@ -96,7 +96,7 @@ export function AltaAmbulatorial({ altaData, setAltaData, instalacoes }: AltaAmb
                         Destino após a alta (Instalação de retorno)
                     </label>
                     <SearchableSelect
-                        options={instalacoes.map((i) => ({ value: i.id.toString(), label: i.caminhoHierarquia || i.nome }))}
+                        options={instalacoes.map((i) => ({ value: i.id.toString(), label: i.nome }))}
                         value={altaData.instalacaoBioterioRetornoId || ""}
                         onChange={(val) => setAltaData(prev => ({ ...prev, instalacaoBioterioRetornoId: val }))}
                         placeholder="Selecione o local/sala de destino..."

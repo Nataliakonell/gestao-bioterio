@@ -192,7 +192,7 @@ export function ConsultaFormModal({ isOpen, onClose, animalId, onSaved, editingC
           </FormField>
           <FormField label="Local / Instalação">
             <SearchableSelect
-              options={instalacoes.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).map((i) => ({ value: String(i.id), label: i.caminhoHierarquia || i.nome }))}
+              options={instalacoes.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).map((i) => ({ value: String(i.id), label: i.nome }))}
               value={form.instalacaoBioterioId}
               isDisabled={loadingInstalacoes || !canEdit}
               onChange={(v) => setForm((f) => ({ ...f, instalacaoBioterioId: v }))}

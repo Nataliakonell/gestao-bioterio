@@ -346,7 +346,7 @@ export function ModalTransferirAnimais({
               {/* 1. Local de Origem: Preenchido automaticamente, somente leitura */}
               <FormField label="Local de Origem" required>
                 <Input
-                  value={origem ? `${origem.nome}${origem.caminhoHierarquia && origem.caminhoHierarquia !== origem.nome ? ` (${origem.caminhoHierarquia})` : ""}` : ""}
+                  value={origem ? origem.nome : ""}
                   readOnly
                   disabled
                   className="bg-gray-100/80 text-gray-700 font-medium cursor-not-allowed border-gray-200"
@@ -363,10 +363,7 @@ export function ModalTransferirAnimais({
                     {salasDestinoDisponiveis.map((loc) => (
                       <SelectItem key={loc.id} value={String(loc.id)}>
                         {loc.nome}
-                        {loc.caminhoHierarquia && loc.caminhoHierarquia !== loc.nome
-                          ? ` (${loc.caminhoHierarquia})`
-                          : ""}
-                      </SelectItem>
+                        </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

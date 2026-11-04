@@ -1,10 +1,10 @@
-import { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PaginationBar } from "@/components/pagination-bar";
 
 export interface ColumnDef<T> {
-  header: string;
+  header: React.ReactNode;
   accessorKey?: keyof T;
   cell?: (item: T) => React.ReactNode;
   sortable?: boolean;
@@ -30,6 +30,9 @@ interface DataTableProps<T> {
     onPageSizeChange: (pageSize: number) => void;
   };
   tableClassName?: string;
+  renderExpandedRow?: (item: T) => React.ReactNode;
+  isRowExpanded?: (item: T) => boolean;
+  rowClassName?: (item: T) => string;
 }
 
 export function DataTable<T>({
@@ -43,6 +46,9 @@ export function DataTable<T>({
   defaultSortDirection,
   serverPagination,
   tableClassName,
+  renderExpandedRow,
+  isRowExpanded,
+  rowClassName,
 }: DataTableProps<T>) {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -131,7 +137,7 @@ export function DataTable<T>({
           <thead className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-zinc-900/60">
             <tr>
               {columns.map((col, idx) => {
-                const isHighlighted = highlightedColumns.includes(col.header);
+                const isHighlighted = typeof col.header === "string" ? highlightedColumns.includes(col.header) : false;
                 const isSortable = !!col.accessorKey && col.sortable === true;
                 const isSorted = sortConfig.key === col.accessorKey;
 
@@ -184,23 +190,42 @@ export function DataTable<T>({
                 </td>
               </tr>
             ) : (
-              paginatedData.map((item, idx) => (
-                <tr
-                  key={idx}
-                  className={`border-b border-gray-100 dark:border-gray-800/60 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors ${onRowClick ? "cursor-pointer" : ""
-                    }`}
-                  onClick={() => onRowClick?.(item)}
-                >
-                  {columns.map((col, colIdx) => {
-                    const isHighlighted = highlightedColumns.includes(col.header);
-                    return (
-                      <td key={colIdx} className={`px-4 py-3 text-sm text-zinc-100 dark:text-zinc-100 ${isHighlighted ? "bg-yellow-50 dark:bg-yellow-900/20" : ""} ${col.cellClassName || "text-left"}`}>
-                        {col.cell ? col.cell(item) : (item as any)[col.accessorKey as string]}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))
+              paginatedData.map((item, idx) => {
+                const expanded = isRowExpanded ? isRowExpanded(item) : false;
+                const customRowClass = rowClassName ? rowClassName(item) : "";
+
+                return (
+                  <React.Fragment key={idx}>
+                    <tr
+                      className={`border-b border-gray-100 dark:border-gray-800/60 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors ${
+                        onRowClick ? "cursor-pointer" : ""
+                      } ${customRowClass}`}
+                      onClick={() => onRowClick?.(item)}
+                    >
+                      {columns.map((col, colIdx) => {
+                        const isHighlighted = typeof col.header === "string" ? highlightedColumns.includes(col.header) : false;
+                        return (
+                          <td
+                            key={colIdx}
+                            className={`px-4 py-3 text-sm text-zinc-100 dark:text-zinc-100 ${
+                              isHighlighted ? "bg-yellow-50 dark:bg-yellow-900/20" : ""
+                            } ${col.cellClassName || "text-left"}`}
+                          >
+                            {col.cell ? col.cell(item) : (item as any)[col.accessorKey as string]}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                    {expanded && renderExpandedRow && (
+                      <tr className="bg-muted/10 border-b">
+                        <td colSpan={columns.length} className="p-0">
+                          {renderExpandedRow(item)}
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })
             )}
           </tbody>
         </table>

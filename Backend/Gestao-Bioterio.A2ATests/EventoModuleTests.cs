@@ -69,6 +69,7 @@ namespace Gestao_Bioterio.A2ATests
                 Id = 552,
                 NumeroRegistro = "ANM-552",
                 NomePopular = "Sucuri Verde",
+                SituacaoAnimal = Situacao.Vivo,
                 DataDeEntrada = DateTime.UtcNow
             });
 

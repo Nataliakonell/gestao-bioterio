@@ -86,7 +86,8 @@ namespace Gestao_Bioterio.Application.Profiles
                 .ForMember(dest => dest.Grupo, opt => opt.MapFrom(src => src.Especie != null && src.Especie.Grupo != null ? src.Especie.Grupo.Nome : string.Empty))
                 .ForMember(dest => dest.InstalacaoBioterioNome, opt => opt.MapFrom(src => src.AnimalLocalizacao != null && src.AnimalLocalizacao.Localizacao != null ? src.AnimalLocalizacao.Localizacao.Nome : (src.InstalacaoBioterio != null ? src.InstalacaoBioterio.Nome : string.Empty)))
                 .ForMember(dest => dest.LocalizacaoId, opt => opt.MapFrom(src => src.AnimalLocalizacao != null ? (int?)src.AnimalLocalizacao.LocalizacaoId : null))
-                .ForMember(dest => dest.LocalizacaoNome, opt => opt.MapFrom(src => src.AnimalLocalizacao != null && src.AnimalLocalizacao.Localizacao != null ? src.AnimalLocalizacao.Localizacao.Nome : null))
+                .ForMember(dest => dest.LocalizacaoNome, opt => opt.MapFrom(src => src.AnimalLocalizacao != null && src.AnimalLocalizacao.Localizacao != null ? src.AnimalLocalizacao.Localizacao.Nome : (src.InstalacaoBioterio != null ? src.InstalacaoBioterio.Nome : null)))
+                .ForMember(dest => dest.LocalizacaoHierarquia, opt => opt.MapFrom(src => src.AnimalLocalizacao != null && src.AnimalLocalizacao.Localizacao != null ? src.AnimalLocalizacao.Localizacao.CaminhoHierarquia : (src.InstalacaoBioterio != null ? src.InstalacaoBioterio.Nome : null)))
                 .ForMember(dest => dest.LocalOrigemNome, opt => opt.MapFrom(src => src.LocalOrigem != null ? src.LocalOrigem.Nome : string.Empty))
                 .ForMember(dest => dest.Situacao, opt => opt.MapFrom(src => src.SituacaoAnimal))
                 .ForMember(dest => dest.BiometriaAnimal, opt => opt.MapFrom(src => 

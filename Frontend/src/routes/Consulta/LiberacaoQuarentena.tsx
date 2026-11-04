@@ -73,7 +73,7 @@ export function LiberacaoQuarentena({ quarentenaData, setQuarentenaData, instala
                         Destino após liberação (Instalação / Sala)
                     </label>
                     <SearchableSelect
-                        options={instalacoes.map((i) => ({ value: i.id.toString(), label: i.caminhoHierarquia || i.nome }))}
+                        options={instalacoes.map((i) => ({ value: i.id.toString(), label: i.nome }))}
                         value={quarentenaData.instalacaoBioterioId || ""}
                         isDisabled={!canEdit}
                         onChange={(val) => setQuarentenaData(prev => ({ ...prev, instalacaoBioterioId: val }))}

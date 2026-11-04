@@ -182,12 +182,28 @@ export function CalendarioEventos({ eventos, onSelectEvento, onDateClick }: Cale
           padding: 2px 6px !important;
           font-size: 0.75rem !important;
           cursor: pointer !important;
-          transition: transform 0.15s ease, opacity 0.15s ease;
+          transition: transform 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08) !important;
         }
 
         .sigbio-calendar .fc-event:hover {
           transform: translateY(-1px);
-          opacity: 0.92;
+          opacity: 0.95;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.12), 0 2px 4px -2px rgba(0, 0, 0, 0.1) !important;
+        }
+
+        /* Destaque para células de dias (Google/Outlook style cursor) */
+        .sigbio-calendar .fc-daygrid-day {
+          cursor: pointer;
+          transition: background-color 0.12s ease;
+        }
+
+        .sigbio-calendar .fc-daygrid-day:hover {
+          background-color: rgba(2, 132, 199, 0.04);
+        }
+
+        .dark .sigbio-calendar .fc-daygrid-day:hover {
+          background-color: rgba(2, 132, 199, 0.1);
         }
       `}</style>
 

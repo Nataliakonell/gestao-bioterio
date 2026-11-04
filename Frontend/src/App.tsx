@@ -9,7 +9,7 @@ import FichaAnimal from './routes/ficha-animal/FichaAnimalVisaoGeral'
 import VisaoGeralAlimentacao from './routes/Alimentacao/VisaoGeralAlimentacao'
 import VisaoGeralRotinaAlimentar from './routes/Alimentacao/VisaoGeralRotinaAlimentar'
 import RegistroAlimentacao from "./routes/Alimentacao/RegistroAlimentacao"
-import AlimentacaoLote from "./routes/Alimentacao/AlimentacaoLote"
+import AlimentacaoPorLote from "./routes/Alimentacao/AlimentacaoPorLote"
 import CadastroBiometria from './routes/Biometria/CadastroBiometria'
 import VisaoGeralBiometria from './routes/Biometria/VisaoGeralBiometria'
 import VisaoGeralRotinaBiometrica from './routes/Biometria/VisaoGeralRotinaBiometrica'
@@ -36,6 +36,8 @@ import RequireRole from './components/ProtectedPage/RequireRole'
 import VisaoGeralInstalacoes from './routes/Instalacoes/VisaoGeralInstalacoes'
 import Aparencia from './routes/Configuracoes/Aparencia'
 import VisaoGeralEventos from './routes/Eventos/VisaoGeralEventos'
+import VisaoGeralRelatorios from './routes/Relatorios/VisaoGeralRelatorios'
+
 import { useTheme } from './contexts/ThemeContext'
 
 function App() {
@@ -72,7 +74,7 @@ function App() {
                   <CadastroEspecie />
                 </RequirePermission>} />
               <Route path="/alimentacao/" element={<VisaoGeralAlimentacao />} />
-              <Route path="/alimentacao/lote" element={<AlimentacaoLote />} />
+              <Route path="/alimentacao/lote" element={<AlimentacaoPorLote />} />
               <Route path="/alimentacao/rotina-alimentar" element={<VisaoGeralRotinaAlimentar />} />
               <Route path="/alimentacao/registrar-alimentacao/:id?" element={<RegistroAlimentacao />} />
               <Route path="/biometria/" element={<VisaoGeralBiometria />} />
@@ -104,6 +106,8 @@ function App() {
                 </RequirePermission>} />
               <Route path="/instalacoes" element={<VisaoGeralInstalacoes />} />
               <Route path="/eventos" element={<VisaoGeralEventos />} />
+              <Route path="/relatorios" element={<VisaoGeralRelatorios />} />
+
               <Route path="/configuracoes/aparencia" element={<Aparencia />} />
               <Route path="/desverminacao/visao-geral" element={<VisaoGeralDesverminacao />} />
               <Route path="/desverminacao/registrar-dose" element={<RegistrarDoseDesverminacao />} />

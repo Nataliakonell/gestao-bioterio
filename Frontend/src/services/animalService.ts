@@ -56,6 +56,7 @@ export interface AnimalListItem {
   instalacaoBioterioNome: string;
   localizacaoId?: number;
   localizacaoNome?: string;
+  localizacaoHierarquia?: string;
   grupo: string;
   localOrigemNome: string;
   genero: number;

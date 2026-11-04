@@ -38,6 +38,11 @@ namespace Gestao_Bioterio.Application.Features.EventosAnimais.Command.UpdateEven
                     return animal != null;
                 })
                 .WithMessage("O animal informado não existe.")
+                .MustAsync(async (animalId, ct) =>
+                {
+                    return await _animalRepository.IsAnimalVivoAsync(animalId, ct);
+                })
+                .WithMessage("Não é permitido incluir animais com situação 'Óbito' ou 'Reintroduzido'. Os eventos devem ser feitos apenas com animais VIVOS.")
                 .MustAsync(async (cmd, animalId, ct) =>
                 {
                     var vinculos = await _eventoAnimalRepository.ObterPorEventoIdAsync(cmd.EventoId);

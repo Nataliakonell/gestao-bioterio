@@ -15,6 +15,7 @@ namespace Gestao_Bioterio.Application.Features.Animais.Queries.GetAllAnimals
         public string InstalacaoBioterioNome { get; set; } = string.Empty;
         public int? LocalizacaoId { get; set; }
         public string? LocalizacaoNome { get; set; }
+        public string? LocalizacaoHierarquia { get; set; }
         public string LocalOrigemNome { get; set; } = string.Empty;
         public FaseDeVida FaseDeVida { get; set; }
         public Situacao Situacao { get; set; }

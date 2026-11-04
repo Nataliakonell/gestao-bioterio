@@ -1,3 +1,4 @@
+import { formatarLocalizacao } from "@/lib/utils";
 import { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
@@ -237,7 +238,7 @@ export default function VisaoGeralAtendimentosClinicos() {
                                                     )}
                                                 </div>
                                             }
-                                            subtitle={`#${item.numeroRegistro} · ${item.localizacao} · ${item.faseDeVidaNome}`}
+                                            subtitle={`#${item.numeroRegistro} · ${formatarLocalizacao(item.localizacao)} · ${item.faseDeVidaNome}`}
                                             badge={
                                                 ultimo ? (
                                                     <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${style.bg} ${style.text}`}>

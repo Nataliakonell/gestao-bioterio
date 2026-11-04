@@ -1,3 +1,4 @@
+import { formatarLocalizacao } from "@/lib/utils";
 import { useEffect, useState } from "react"
 import { SearchableSelect } from "@/components/ui/searchable-select"
 import { FileText } from "lucide-react"
@@ -133,7 +134,7 @@ export function CardFichaAnimalForm({
                             </div>
                             <div className="flex flex-col">
                                 <span className="text-gray-500 text-xs font-medium">Local</span>
-                                <span className="font-semibold text-gray-900">{animalDetails.instalacaoBioterioNome || "-"}</span>
+                                <span className="font-semibold text-gray-900">{formatarLocalizacao(animalDetails.localizacaoNome || animalDetails.localizacaoHierarquia || animalDetails.instalacaoBioterioNome, "-")}</span>
                             </div>
                             <div className="flex flex-col">
                                 <span className="text-gray-500 text-xs font-medium">Sexo:</span>

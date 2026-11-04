@@ -1,3 +1,4 @@
+import { formatarLocalizacao } from "@/lib/utils";
 import { useState, useEffect, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import { AddButton } from "@/components/formulario-registro/AddButton"
@@ -283,7 +284,7 @@ export default function VisaoGeral() {
                     cell: (animal) => faseDeVidaMap[animal.faseDeVida] ?? "-",
                     accessorKey: "faseDeVida",
                   },
-                  { header: "Instalação", accessorKey: "instalacaoBioterioNome" },
+                  { header: "Instalação", accessorKey: "instalacaoBioterioNome", cell: (animal) => formatarLocalizacao(animal.localizacaoNome || animal.localizacaoHierarquia || animal.instalacaoBioterioNome, "-") },
                   { header: "Origem", accessorKey: "localOrigemNome" },
                   {
                     header: "Situação",

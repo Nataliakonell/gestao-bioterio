@@ -21,9 +21,7 @@ export function CardInstalacao({
   // Descrição padrão ou personalizada (se não fornecida, usa o caminho da hierarquia ou texto informativo)
   const textoDescricao =
     descricao ||
-    (localizacao.caminhoHierarquia && localizacao.caminhoHierarquia !== localizacao.nome
-      ? `Localização: ${localizacao.caminhoHierarquia}`
-      : "Área de alojamento e manejo dos animais do biotério.")
+    "Área de alojamento e manejo dos animais do biotério."
 
   return (
     <div className="flex flex-col justify-between rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all duration-200 hover:shadow-md hover:border-gray-300">

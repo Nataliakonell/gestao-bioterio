@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useCallback } from "react"
+﻿import { formatarLocalizacao } from "@/lib/utils";
+import { useState, useEffect, useCallback } from "react"
 import { useParams, useNavigate, useLocation } from "react-router-dom"
 import { ArrowLeft, Edit, Clock, Image as ImageIcon, Loader2, Plus, WeightTilde, Calendar, Activity } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -353,7 +354,7 @@ export default function FichaAnimal() {
                         Instalação no Biotério
                       </span>
                       <span className="font-medium text-slate-900">
-                        {animal.instalacaoBioterioNome}
+                        {formatarLocalizacao(animal.localizacaoNome || animal.localizacaoHierarquia || animal.instalacaoBioterioNome)}
                       </span>
                     </div>
                     <div className="col-span-1 md:col-span-2">

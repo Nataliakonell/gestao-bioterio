@@ -402,7 +402,7 @@ export default function CadastroAnimal() {
                             <SelectTrigger><SelectValue placeholder="Selecione o Local" /></SelectTrigger>
                             <SelectContent>
                               {localizacoes.map((loc) => (
-                                <SelectItem key={loc.id} value={loc.id.toString()}>{loc.caminhoHierarquia || loc.nome}</SelectItem>
+                                <SelectItem key={loc.id} value={loc.id.toString()}>{loc.nome}</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>

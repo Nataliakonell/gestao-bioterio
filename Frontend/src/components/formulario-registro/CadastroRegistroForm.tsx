@@ -38,6 +38,7 @@ export interface FormLayoutBaseProps {
   columnsClassName?: string
   sideContent?: ReactNode
   hideSubmit?: boolean
+  hideCancel?: boolean
 }
 
 export function FormLayoutBase({
@@ -56,6 +57,7 @@ export function FormLayoutBase({
   columnsClassName = "grid-cols-1 md:grid-cols-2 lg:grid-cols-3",
   sideContent,
   hideSubmit = false,
+  hideCancel = false,
 }: FormLayoutBaseProps) {
   const [loading, setLoading] = useState(false)
   const [isRedirecting, setIsRedirecting] = useState(false)
@@ -135,7 +137,9 @@ export function FormLayoutBase({
     </FormSection>
   ) : null;
 
-  const actionButtons = (
+  const hasAnyActions = !hideSubmit || !hideCancel || onDelete;
+
+  const actionButtons = hasAnyActions ? (
     <div className="flex justify-end gap-3 pt-2 relative items-center">
       {onDelete && (
         <div className="absolute left-0">
@@ -149,15 +153,17 @@ export function FormLayoutBase({
           </button>
         </div>
       )}
-      <Button
-        type="button"
-        variant="outline"
-        onClick={handleCancelClick}
-        disabled={loading || isRedirecting}
-        className="px-6"
-      >
-        {hideSubmit ? "Voltar" : "Cancelar"}
-      </Button>
+      {!hideCancel && (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleCancelClick}
+          disabled={loading || isRedirecting}
+          className="px-6"
+        >
+          {hideSubmit ? "Voltar" : "Cancelar"}
+        </Button>
+      )}
       {!hideSubmit && (
         <Button
           type="submit"
@@ -175,7 +181,7 @@ export function FormLayoutBase({
         </Button>
       )}
     </div>
-  )
+  ) : null;
 
   return (
     <>

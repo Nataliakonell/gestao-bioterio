@@ -1,3 +1,4 @@
+import { formatarLocalizacao } from "@/lib/utils";
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import {
@@ -13,7 +14,20 @@ import {
   Edit,
   Printer,
   Eye,
+  CalendarPlus,
+  Download,
 } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  getGoogleCalendarUrl,
+  getOutlookCalendarUrl,
+  downloadIcsFile,
+} from "@/lib/calendarExport"
 import { ModalShell } from "@/components/ui/modal-shell"
 import { Button } from "@/components/ui/button"
 import { DataTable, type ColumnDef } from "@/components/data-table"
@@ -37,6 +51,7 @@ interface ModalDetalhesEventoProps {
   onAbrirSaida: (evento: EventoDetailVm) => void
   onAbrirRetorno: (evento: EventoDetailVm) => void
   onEditar?: (evento: EventoDetailVm) => void
+  onVisualizarDocumento?: (evento: EventoDetailVm) => void
 }
 
 export function ModalDetalhesEvento({
@@ -46,11 +61,21 @@ export function ModalDetalhesEvento({
   onAbrirSaida,
   onAbrirRetorno,
   onEditar,
+  onVisualizarDocumento,
 }: ModalDetalhesEventoProps) {
   const [evento, setEvento] = useState<EventoDetailVm | null>(null)
   const [loading, setLoading] = useState(false)
   const [documentos, setDocumentos] = useState<DocumentoEventoListVm[]>([])
   const [modalDocOpen, setModalDocOpen] = useState(false)
+
+  const handleAbrirVisualizacaoDocumento = () => {
+    if (onVisualizarDocumento && evento) {
+      onClose()
+      onVisualizarDocumento(evento)
+    } else {
+      setModalDocOpen(true)
+    }
+  }
 
   useEffect(() => {
     if (isOpen && eventoId) {
@@ -176,7 +201,7 @@ export function ModalDetalhesEvento({
                   <div className="flex items-center gap-2 text-sm font-medium text-slate-800 mt-0.5">
                     <MapPin className="h-4 w-4 text-slate-400" />
                     <span>
-                      {evento.localizacaoNome || (evento.tipoEvento === TipoEvento.Externo ? "Destino Externo" : "Instalação Interna")}
+                      {formatarLocalizacao(evento.localizacaoNome) || (evento.tipoEvento === TipoEvento.Externo ? "Destino Externo" : "Instalação Interna")}
                     </span>
                   </div>
                 </div>
@@ -195,6 +220,85 @@ export function ModalDetalhesEvento({
                     <Clock className="h-4 w-4 text-slate-400" />
                     <span>{new Date(evento.dataHoraPrevisaoRetorno).toLocaleString("pt-BR")}</span>
                   </div>
+                </div>
+              </div>
+
+              {/* Sincronização com Agenda Externa (Google, Outlook, iCal) */}
+              <div className="p-4 bg-slate-50 border border-slate-200 dark:bg-slate-900/40 dark:border-slate-800 rounded-xl space-y-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                    <CalendarPlus className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                      Salvar na Agenda Pessoal
+                    </span>
+                    <span className="text-[11px] text-slate-500">
+                      Sincronize este evento com seu calendário de preferência
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const url = getGoogleCalendarUrl({
+                        title: `[SIGBio] ${evento.nome}`,
+                        description: `Evento do Biotério UCDB.\nResponsável: ${evento.responsavel || "Não informado"}\nTipo: ${evento.tipoEvento === TipoEvento.Interno ? "Interno" : "Externo"}\nQuantidade de animais: ${evento.animais?.length || 0}`,
+                        location: evento.localizacaoNome || (evento.tipoEvento === TipoEvento.Externo ? "Destino Externo" : "Instalação Interna UCDB"),
+                        startDate: evento.dataHoraInicio,
+                        endDate: evento.dataHoraPrevisaoRetorno,
+                      })
+                      window.open(url, "_blank", "noopener,noreferrer")
+                    }}
+                    className="border-slate-200 hover:border-blue-400 hover:bg-blue-50/50 text-slate-700 hover:text-blue-700 text-xs font-semibold h-9 flex items-center justify-center gap-1.5 transition-all"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5 text-blue-500" />
+                    <span>Google Agenda</span>
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const url = getOutlookCalendarUrl({
+                        title: `[SIGBio] ${evento.nome}`,
+                        description: `Evento do Biotério UCDB.\nResponsável: ${evento.responsavel || "Não informado"}\nTipo: ${evento.tipoEvento === TipoEvento.Interno ? "Interno" : "Externo"}\nQuantidade de animais: ${evento.animais?.length || 0}`,
+                        location: evento.localizacaoNome || (evento.tipoEvento === TipoEvento.Externo ? "Destino Externo" : "Instalação Interna UCDB"),
+                        startDate: evento.dataHoraInicio,
+                        endDate: evento.dataHoraPrevisaoRetorno,
+                      })
+                      window.open(url, "_blank", "noopener,noreferrer")
+                    }}
+                    className="border-slate-200 hover:border-sky-400 hover:bg-sky-50/50 text-slate-700 hover:text-sky-700 text-xs font-semibold h-9 flex items-center justify-center gap-1.5 transition-all"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5 text-sky-600" />
+                    <span>Outlook (Web)</span>
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      downloadIcsFile({
+                        title: `[SIGBio] ${evento.nome}`,
+                        description: `Evento do Biotério UCDB.\nResponsável: ${evento.responsavel || "Não informado"}\nTipo: ${evento.tipoEvento === TipoEvento.Interno ? "Interno" : "Externo"}\nQuantidade de animais: ${evento.animais?.length || 0}`,
+                        location: evento.localizacaoNome || (evento.tipoEvento === TipoEvento.Externo ? "Destino Externo" : "Instalação Interna UCDB"),
+                        startDate: evento.dataHoraInicio,
+                        endDate: evento.dataHoraPrevisaoRetorno,
+                      }, `evento-${evento.id}-${evento.nome.toLowerCase().replace(/[^a-z0-9]/g, "-")}`)
+                      toast.success("Arquivo .ICS baixado com sucesso!")
+                    }}
+                    className="border-slate-200 hover:border-emerald-400 hover:bg-emerald-50/50 text-slate-700 hover:text-emerald-700 text-xs font-semibold h-9 flex items-center justify-center gap-1.5 transition-all"
+                  >
+                    <Download className="h-3.5 w-3.5 text-emerald-600" />
+                    <span>Baixar .ICS</span>
+                  </Button>
                 </div>
               </div>
 
@@ -263,7 +367,7 @@ export function ModalDetalhesEvento({
                     </h4>
                     <Button
                       size="sm"
-                      onClick={() => setModalDocOpen(true)}
+                      onClick={handleAbrirVisualizacaoDocumento}
                       className="bg-blue-600 hover:bg-blue-700 text-white text-xs gap-1.5 h-8 font-semibold shadow-sm"
                     >
                       <Printer className="h-3.5 w-3.5" />
@@ -290,7 +394,7 @@ export function ModalDetalhesEvento({
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => setModalDocOpen(true)}
+                              onClick={handleAbrirVisualizacaoDocumento}
                               className="h-7 text-xs text-blue-600 hover:bg-blue-50"
                             >
                               <Eye className="h-3.5 w-3.5 mr-1" />

@@ -47,6 +47,7 @@ export function ModalInstalacao({
   instalacaoParaEditar,
   localizacoes,
 }: ModalInstalacaoProps) {
+  const isEditing = Boolean(instalacaoParaEditar?.id)
   const [form, setForm] = useState<FormState>(initialFormState)
   const [animaisSelecionados, setAnimaisSelecionados] = useState<AnimalSelecionado[]>([])
   const [termoPesquisa, setTermoPesquisa] = useState("")
@@ -78,25 +79,7 @@ export function ModalInstalacao({
         ambiente: instalacaoParaEditar.ambiente || 1,
         animalIds: [],
       })
-
-      const carregarAnimaisAlocados = async () => {
-        try {
-          const vinculos = await animalLocalizacaoService.getByLocalizacaoId(
-            instalacaoParaEditar.id
-          )
-          const selecionados: AnimalSelecionado[] = vinculos.map((v) => ({
-            id: v.animalId,
-            numeroRegistro: v.animalNumeroRegistro || `Animal #${v.animalId}`,
-            especieNome: "",
-            nomePopular: v.animalNomePopular || "",
-          }))
-          setAnimaisSelecionados(selecionados)
-          setForm((f) => ({ ...f, animalIds: selecionados.map((s) => s.id) }))
-        } catch (err) {
-          console.error("Erro ao carregar animais vinculados à instalação:", err)
-        }
-      }
-      carregarAnimaisAlocados()
+      setAnimaisSelecionados([])
     } else {
       setForm(initialFormState)
       setAnimaisSelecionados([])
@@ -105,7 +88,7 @@ export function ModalInstalacao({
   }, [isOpen, instalacaoParaEditar])
 
   useEffect(() => {
-    if (!isOpen) return
+    if (!isOpen || isEditing) return
 
     const timer = setTimeout(async () => {
       try {
@@ -147,7 +130,7 @@ export function ModalInstalacao({
   const isDirty = Boolean(
     form.nome.trim() !== (instalacaoParaEditar?.nome || "") ||
     form.ambiente !== (instalacaoParaEditar?.ambiente || 1) ||
-    form.animalIds.length > 0
+    (!isEditing && form.animalIds.length > 0)
   )
 
   const {
@@ -215,33 +198,12 @@ export function ModalInstalacao({
       if (instalacaoParaEditar?.id) {
         await localizacaoService.update({
           id: instalacaoParaEditar.id,
-          ...payload,
+          nome: form.nome.trim(),
+          localizacaoPaiId,
+          ambiente: form.ambiente,
         })
 
-        const vinculosAtuais = await animalLocalizacaoService.getByLocalizacaoId(
-          instalacaoParaEditar.id
-        )
-        const animaisAtuaisIds = new Set(vinculosAtuais.map((v) => v.animalId))
-        const novosIds = new Set(form.animalIds)
-
-        const paraRemover = vinculosAtuais.filter((v) => !novosIds.has(v.animalId))
-        await Promise.allSettled(
-          paraRemover.map((v) => animalLocalizacaoService.delete(v.id))
-        )
-
-        const paraAdicionar = form.animalIds.filter(
-          (id) => !animaisAtuaisIds.has(id)
-        )
-        await Promise.allSettled(
-          paraAdicionar.map((animalId) =>
-            animalLocalizacaoService.create({
-              animalId,
-              localizacaoId: instalacaoParaEditar.id,
-            })
-          )
-        )
-
-        toast.success("Sala e animais alocados atualizados com sucesso!")
+        toast.success("Instalação atualizada com sucesso!")
       } else {
         const response = await localizacaoService.create(payload)
         const novaSalaId =
@@ -363,167 +325,169 @@ export function ModalInstalacao({
             </div>
           </div>
 
-          {/* Seletor Múltiplo de Animais */}
-          <div className="border-t border-gray-200 pt-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                  Alocação de Animais na Sala
-                </h3>
+          {/* Seletor Múltiplo de Animais (apenas no cadastro) */}
+          {!isEditing && (
+            <div className="border-t border-gray-200 pt-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                    Alocação de Animais na Sala
+                  </h3>
+                </div>
+                <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-100 text-blue-800">
+                  {animaisSelecionados.length} selecionado{animaisSelecionados.length !== 1 ? "s" : ""}
+                </span>
               </div>
-              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-100 text-blue-800">
-                {animaisSelecionados.length} selecionado{animaisSelecionados.length !== 1 ? "s" : ""}
-              </span>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {/* Coluna 1: Pesquisa e Lista de Resultados */}
-              <div className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white p-3.5 shadow-sm">
-                <div className="relative">
-                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                  <Input
-                    value={termoPesquisa}
-                    onChange={(e) => setTermoPesquisa(e.target.value)}
-                    placeholder="Buscar por número de registro ou espécie..."
-                    className="pl-9 h-9 text-xs bg-gray-50 border-gray-200 focus:bg-white"
-                    disabled={saving || deleting}
-                  />
-                  {buscandoAnimais && (
-                    <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-blue-600" />
-                  )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Coluna 1: Pesquisa e Lista de Resultados */}
+                <div className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white p-3.5 shadow-sm">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                    <Input
+                      value={termoPesquisa}
+                      onChange={(e) => setTermoPesquisa(e.target.value)}
+                      placeholder="Buscar por número de registro ou espécie..."
+                      className="pl-9 h-9 text-xs bg-gray-50 border-gray-200 focus:bg-white"
+                      disabled={saving || deleting}
+                    />
+                    {buscandoAnimais && (
+                      <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-blue-600" />
+                    )}
+                  </div>
+
+                  <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider px-1 pt-1">
+                    Resultados da busca
+                  </div>
+
+                  <ScrollArea className="h-60 rounded-lg border border-gray-100 bg-gray-50/50 p-1.5">
+                    {buscandoAnimais && animaisEncontrados.length === 0 ? (
+                      <div className="flex h-44 items-center justify-center text-xs text-gray-400">
+                        <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                        Consultando animais...
+                      </div>
+                    ) : animaisEncontrados.length === 0 ? (
+                      <div className="flex h-44 flex-col items-center justify-center text-center p-4 text-xs text-gray-400">
+                        <PawPrint className="h-7 w-7 text-gray-300 mb-1.5" />
+                        {termoPesquisa
+                          ? "Nenhum animal encontrado para a busca."
+                          : "Nenhum animal disponível no momento."}
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {animaisEncontrados.map((animal) => {
+                          const jaSelecionado = animaisSelecionados.some(
+                            (a) => a.id === animal.id
+                          )
+                          return (
+                            <div
+                              key={animal.id}
+                              className="flex items-center justify-between gap-2 rounded-md border border-gray-200 bg-white p-2.5 transition hover:border-blue-200 hover:shadow-xs"
+                            >
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-bold text-gray-900 truncate">
+                                  {animal.numeroRegistro}
+                                </p>
+                                <p className="text-[11px] text-gray-500 truncate">
+                                  {animal.especieNome || animal.nomePopular || "Espécie não informada"}
+                                </p>
+                              </div>
+
+                              {jaSelecionado ? (
+                                <span className="inline-flex items-center gap-1 rounded bg-emerald-50 px-2 py-1 text-[11px] font-medium text-emerald-700 border border-emerald-200">
+                                  <Check className="h-3 w-3" /> Adicionado
+                                </span>
+                              ) : (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleAdicionarAnimal(animal)}
+                                  disabled={saving || deleting}
+                                  className="h-7 w-7 p-0 border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
+                                  title="Adicionar à sala"
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </ScrollArea>
                 </div>
 
-                <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider px-1 pt-1">
-                  Resultados da busca
-                </div>
+                {/* Coluna 2: Animais Selecionados nesta Instalação */}
+                <div className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white p-3.5 shadow-sm">
+                  <div className="flex items-center justify-between px-1 h-9">
+                    <span className="text-xs font-bold text-gray-800">
+                      Animais selecionados nesta instalação ({animaisSelecionados.length})
+                    </span>
+                    {animaisSelecionados.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAnimaisSelecionados([])
+                          setForm((f) => ({ ...f, animalIds: [] }))
+                        }}
+                        disabled={saving || deleting}
+                        className="text-[11px] text-red-600 hover:underline font-medium"
+                      >
+                        Limpar todos
+                      </button>
+                    )}
+                  </div>
 
-                <ScrollArea className="h-60 rounded-lg border border-gray-100 bg-gray-50/50 p-1.5">
-                  {buscandoAnimais && animaisEncontrados.length === 0 ? (
-                    <div className="flex h-44 items-center justify-center text-xs text-gray-400">
-                      <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                      Consultando animais...
-                    </div>
-                  ) : animaisEncontrados.length === 0 ? (
-                    <div className="flex h-44 flex-col items-center justify-center text-center p-4 text-xs text-gray-400">
-                      <PawPrint className="h-7 w-7 text-gray-300 mb-1.5" />
-                      {termoPesquisa
-                        ? "Nenhum animal encontrado para a busca."
-                        : "Nenhum animal disponível no momento."}
-                    </div>
-                  ) : (
-                    <div className="space-y-1.5">
-                      {animaisEncontrados.map((animal) => {
-                        const jaSelecionado = animaisSelecionados.some(
-                          (a) => a.id === animal.id
-                        )
-                        return (
+                  <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider px-1 pt-1">
+                    Lista de alocação confirmada
+                  </div>
+
+                  <ScrollArea className="h-60 rounded-lg border border-gray-100 bg-slate-50/60 p-1.5">
+                    {animaisSelecionados.length === 0 ? (
+                      <div className="flex h-44 flex-col items-center justify-center text-center p-4 text-xs text-gray-400">
+                        <Building2 className="h-7 w-7 text-gray-300 mb-1.5" />
+                        Nenhum animal selecionado para esta sala.
+                        <span className="text-[11px] text-gray-400 mt-1">
+                          Utilize a lista ao lado para adicionar.
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {animaisSelecionados.map((sel) => (
                           <div
-                            key={animal.id}
-                            className="flex items-center justify-between gap-2 rounded-md border border-gray-200 bg-white p-2.5 transition hover:border-blue-200 hover:shadow-xs"
+                            key={sel.id}
+                            className="flex items-center justify-between gap-2 rounded-md border border-gray-200 bg-white p-2.5 shadow-xs"
                           >
                             <div className="min-w-0 flex-1">
                               <p className="text-xs font-bold text-gray-900 truncate">
-                                {animal.numeroRegistro}
+                                {sel.numeroRegistro}
                               </p>
                               <p className="text-[11px] text-gray-500 truncate">
-                                {animal.especieNome || animal.nomePopular || "Espécie não informada"}
+                                {sel.especieNome || sel.nomePopular || "Espécie não informada"}
                               </p>
                             </div>
 
-                            {jaSelecionado ? (
-                              <span className="inline-flex items-center gap-1 rounded bg-emerald-50 px-2 py-1 text-[11px] font-medium text-emerald-700 border border-emerald-200">
-                                <Check className="h-3 w-3" /> Adicionado
-                              </span>
-                            ) : (
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleAdicionarAnimal(animal)}
-                                disabled={saving || deleting}
-                                className="h-7 w-7 p-0 border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
-                                title="Adicionar à sala"
-                              >
-                                <Plus className="h-4 w-4" />
-                              </Button>
-                            )}
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleRemoverAnimal(sel.id)}
+                              disabled={saving || deleting}
+                              className="h-7 w-7 p-0 text-red-500 hover:bg-red-50 hover:text-red-700"
+                              title="Remover animal"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
                           </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                </ScrollArea>
-              </div>
-
-              {/* Coluna 2: Animais Selecionados nesta Instalação */}
-              <div className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white p-3.5 shadow-sm">
-                <div className="flex items-center justify-between px-1 h-9">
-                  <span className="text-xs font-bold text-gray-800">
-                    Animais selecionados nesta instalação ({animaisSelecionados.length})
-                  </span>
-                  {animaisSelecionados.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAnimaisSelecionados([])
-                        setForm((f) => ({ ...f, animalIds: [] }))
-                      }}
-                      disabled={saving || deleting}
-                      className="text-[11px] text-red-600 hover:underline font-medium"
-                    >
-                      Limpar todos
-                    </button>
-                  )}
+                        ))}
+                      </div>
+                    )}
+                  </ScrollArea>
                 </div>
-
-                <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider px-1 pt-1">
-                  Lista de alocação confirmada
-                </div>
-
-                <ScrollArea className="h-60 rounded-lg border border-gray-100 bg-slate-50/60 p-1.5">
-                  {animaisSelecionados.length === 0 ? (
-                    <div className="flex h-44 flex-col items-center justify-center text-center p-4 text-xs text-gray-400">
-                      <Building2 className="h-7 w-7 text-gray-300 mb-1.5" />
-                      Nenhum animal selecionado para esta sala.
-                      <span className="text-[11px] text-gray-400 mt-1">
-                        Utilize a lista ao lado para adicionar.
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="space-y-1.5">
-                      {animaisSelecionados.map((sel) => (
-                        <div
-                          key={sel.id}
-                          className="flex items-center justify-between gap-2 rounded-md border border-gray-200 bg-white p-2.5 shadow-xs"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <p className="text-xs font-bold text-gray-900 truncate">
-                              {sel.numeroRegistro}
-                            </p>
-                            <p className="text-[11px] text-gray-500 truncate">
-                              {sel.especieNome || sel.nomePopular || "Espécie não informada"}
-                            </p>
-                          </div>
-
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleRemoverAnimal(sel.id)}
-                            disabled={saving || deleting}
-                            className="h-7 w-7 p-0 text-red-500 hover:bg-red-50 hover:text-red-700"
-                            title="Remover animal"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </ScrollArea>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </ModalShell>
 

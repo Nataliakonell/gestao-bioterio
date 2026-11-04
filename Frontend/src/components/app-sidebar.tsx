@@ -92,7 +92,7 @@ const data = {
     },
   ],
   menus: [
-    { title: "Relatórios", url: "#", icon: FileChartColumn },
+    { title: "Relatórios", url: "/relatorios", icon: FileChartColumn },
     { 
       title: "Perfis e usuários", 
       url: "#", 
@@ -180,3 +180,4 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     </>
   )
 }
+

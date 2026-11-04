@@ -13,6 +13,8 @@ import { ModalAgendarEvento } from "./ModalAgendarEvento"
 import { ModalDetalhesEvento } from "./ModalDetalhesEvento"
 import { ModalConfirmarSaidaEvento } from "./ModalConfirmarSaidaEvento"
 import { ModalConfirmarRetornoEvento } from "./ModalConfirmarRetornoEvento"
+import { ModalDiaEventos } from "./ModalDiaEventos"
+import { ModalDocumentoEvento } from "./ModalDocumentoEvento"
 import {
   eventoService,
   type EventoListVm,
@@ -33,6 +35,11 @@ export default function VisaoGeralEventos() {
   const [modalDetalhesOpen, setModalDetalhesOpen] = useState(false)
   const [modalSaidaOpen, setModalSaidaOpen] = useState(false)
   const [modalRetornoOpen, setModalRetornoOpen] = useState(false)
+  const [modalDiaOpen, setModalDiaOpen] = useState(false)
+  const [modalDocumentoOpen, setModalDocumentoOpen] = useState(false)
+  const [eventoParaDocumento, setEventoParaDocumento] = useState<EventoDetailVm | null>(null)
+  const [diaSelecionado, setDiaSelecionado] = useState<string | null>(null)
+  const [dataPredefinidaParaCriar, setDataPredefinidaParaCriar] = useState<string | null>(null)
 
   const [selectedEventoId, setSelectedEventoId] = useState<number | null>(null)
   const [eventoParaAcao, setEventoParaAcao] = useState<EventoDetailVm | null>(null)
@@ -103,6 +110,23 @@ export default function VisaoGeralEventos() {
 
   const handleEditar = (evento: EventoDetailVm) => {
     setEventoParaEditar(evento)
+    setDataPredefinidaParaCriar(null)
+    setModalAgendarOpen(true)
+  }
+
+  const handleVisualizarDocumento = (evento: EventoDetailVm) => {
+    setEventoParaDocumento(evento)
+    setModalDocumentoOpen(true)
+  }
+
+  const handleDateClick = (dateStr: string) => {
+    setDiaSelecionado(dateStr)
+    setModalDiaOpen(true)
+  }
+
+  const handleCriarEventoNoDia = (dateStr: string) => {
+    setEventoParaEditar(null)
+    setDataPredefinidaParaCriar(dateStr)
     setModalAgendarOpen(true)
   }
 
@@ -122,6 +146,7 @@ export default function VisaoGeralEventos() {
                 text="Novo Evento"
                 onClick={() => {
                   setEventoParaEditar(null)
+                  setDataPredefinidaParaCriar(null)
                   setModalAgendarOpen(true)
                 }}
               />
@@ -185,10 +210,7 @@ export default function VisaoGeralEventos() {
               <CalendarioEventos
                 eventos={eventos}
                 onSelectEvento={handleSelectEvento}
-                onDateClick={() => {
-                  setEventoParaEditar(null)
-                  setModalAgendarOpen(true)
-                }}
+                onDateClick={handleDateClick}
               />
             </div>
           </div>
@@ -201,9 +223,24 @@ export default function VisaoGeralEventos() {
         onClose={() => {
           setModalAgendarOpen(false)
           setEventoParaEditar(null)
+          setDataPredefinidaParaCriar(null)
         }}
         onSuccess={carregarEventos}
         eventoParaEditar={eventoParaEditar}
+        dataInicialPredefinida={dataPredefinidaParaCriar}
+      />
+
+      {/* Modal de Detalhes do Dia Selecionado (Estilo Google/Outlook) */}
+      <ModalDiaEventos
+        isOpen={modalDiaOpen}
+        onClose={() => {
+          setModalDiaOpen(false)
+          setDiaSelecionado(null)
+        }}
+        dataStr={diaSelecionado}
+        eventos={eventos}
+        onSelectEvento={handleSelectEvento}
+        onCriarEventoNoDia={handleCriarEventoNoDia}
       />
 
       {/* Modal de Detalhes do Evento */}
@@ -217,6 +254,26 @@ export default function VisaoGeralEventos() {
         onAbrirSaida={handleAbrirSaida}
         onAbrirRetorno={handleAbrirRetorno}
         onEditar={handleEditar}
+        onVisualizarDocumento={handleVisualizarDocumento}
+      />
+
+      {/* Modal Independente de Visualização do Documento (Estilo Exames) */}
+      <ModalDocumentoEvento
+        isOpen={modalDocumentoOpen}
+        onClose={() => {
+          setModalDocumentoOpen(false)
+          setEventoParaDocumento(null)
+        }}
+        eventoId={eventoParaDocumento?.id ?? null}
+        eventoNome={eventoParaDocumento?.nome}
+        onEditarFormulario={() => {
+          const ev = eventoParaDocumento
+          setModalDocumentoOpen(false)
+          setEventoParaDocumento(null)
+          if (ev) {
+            handleEditar(ev)
+          }
+        }}
       />
 
       {/* Modal de Confirmação de Saída */}

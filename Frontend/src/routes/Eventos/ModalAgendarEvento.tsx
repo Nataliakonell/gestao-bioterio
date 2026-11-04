@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react"
 import { toast } from "sonner"
-import { Calendar as CalendarIcon, MapPin, User, FileText, Check, AlertTriangle, Eye } from "lucide-react"
+import { Calendar as CalendarIcon, MapPin, User, FileText, Check, AlertTriangle, Eye, AlertCircle } from "lucide-react"
 import { ModalShell } from "@/components/ui/modal-shell"
 import { FormLayoutBase, FormSection } from "@/components/formulario-registro/CadastroRegistroForm"
 import { FormField } from "@/components/ui/form-field"
@@ -15,6 +15,7 @@ import { BarraDeBuscaEFiltro } from "@/components/barra-de-busca-e-filtro"
 import { DateTimePicker } from "@/components/ui/datetime-picker"
 import { Button } from "@/components/ui/button"
 import { formatToLocalIso } from "@/lib/date"
+import { formatarLocalizacao } from "@/lib/utils"
 import { eventoService, TipoEvento, StatusEvento, type EventoDetailVm } from "@/services/EventoService"
 import { eventoAnimalService } from "@/services/EventoAnimalService"
 import { localizacaoService, type LocalizacaoListVm, Ambiente } from "@/services/LocalizacaoService"
@@ -22,48 +23,59 @@ import { animalService, type AnimalListItem } from "@/services/animalService"
 import { especieService, type EspecieLookupVm } from "@/services/EspecieService"
 import { documentoEventoService } from "@/services/DocumentoEventoService"
 import { modeloDocumentoService, TipoDocumento, type ModeloDocumentoVm } from "@/services/ModeloDocumentoService"
-import {
-  FormularioTransporteFauna,
-  type DadosTransporteFauna,
-  TEXTO_PADRAO_CONDUTOR_VEICULOS
-} from "./FormularioTransporteFauna"
+import { FormularioTransporteFauna, type DadosTransporteFauna, TEXTO_PADRAO_CONDUTOR_VEICULOS } from "./FormularioTransporteFauna"
 import { ModalDocumentoEvento } from "./ModalDocumentoEvento"
+
+const generoMap: Record<number | string, string> = {
+  1: "Macho",
+  2: "Fêmea",
+  3: "Não Identificado",
+  "1": "Macho",
+  "2": "Fêmea",
+  "3": "Não Identificado",
+  Macho: "Macho",
+  Fêmea: "Fêmea",
+  Femea: "Fêmea",
+  "Não Identificado": "Não Identificado",
+}
+
+export function formatarGenero(genero: any): string {
+  if (genero === undefined || genero === null || genero === "") return "Não informado"
+  return generoMap[genero] || String(genero)
+}
 
 interface ModalAgendarEventoProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
   eventoParaEditar?: EventoDetailVm | null
+  dataInicialPredefinida?: string | null
 }
 
-export function ModalAgendarEvento({ isOpen, onClose, onSuccess, eventoParaEditar }: ModalAgendarEventoProps) {
+export function ModalAgendarEvento({
+  isOpen,
+  onClose,
+  onSuccess,
+  eventoParaEditar,
+  dataInicialPredefinida,
+}: ModalAgendarEventoProps) {
   const [submitting, setSubmitting] = useState(false)
 
-  // Campos do Evento
   const [nome, setNome] = useState("")
   const [descricao, setDescricao] = useState("")
   const [dataHoraInicio, setDataHoraInicio] = useState<Date | undefined>(undefined)
   const [dataHoraPrevisaoRetorno, setDataHoraPrevisaoRetorno] = useState<Date | undefined>(undefined)
   const [tipoEvento, setTipoEvento] = useState<TipoEvento>(TipoEvento.Interno)
   const [responsavel, setResponsavel] = useState("")
-
-  // Animais
   const [todosAnimais, setTodosAnimais] = useState<AnimalListItem[]>([])
   const [selectedAnimalIds, setSelectedAnimalIds] = useState<Set<number>>(new Set())
   const [loadingAnimais, setLoadingAnimais] = useState(false)
-
-  // Localizações e espécies
   const [localizacoes, setLocalizacoes] = useState<LocalizacaoListVm[]>([])
   const [especiesLookup, setEspeciesLookup] = useState<EspecieLookupVm[]>([])
-
-  // Modelos de Documento
   const [modelosDocumento, setModelosDocumento] = useState<ModeloDocumentoVm[]>([])
   const [modeloDocId, setModeloDocId] = useState<string>("")
-
-  // Modal de Prévia / Visualização do Documento
   const [modalPreviewDocOpen, setModalPreviewDocOpen] = useState(false)
-
-  // Dados Estruturados do Formulário de Transporte de Fauna (IMASUL)
+  const [gerarDocumento, setGerarDocumento] = useState(false)
   const [dadosTransporte, setDadosTransporte] = useState<DadosTransporteFauna>({
     destTipo: "Expositor",
     destOutrosEspecificar: "",
@@ -83,9 +95,25 @@ export function ModalAgendarEvento({ isOpen, onClose, onSuccess, eventoParaEdita
     transporteData: ""
   })
 
-  // Filtros de busca de animais
   const [searchAnimal, setSearchAnimal] = useState("")
   const [selectedEspecie, setSelectedEspecie] = useState("")
+
+  // Histórico de eventos dos animais para a regra dos 30 dias
+  // Chave: animalId -> { eventoId, eventoNome, dataHoraInicio: Date, diasDiferenca: number }
+  const [historicoEventosAnimais, setHistoricoEventosAnimais] = useState<
+    Map<number, { eventoId: number; eventoNome: string; dataEvento: string; diasAtras: number }>
+  >(new Map())
+
+  // Estado do aviso/confirmação de intervalo de 30 dias
+  const [alertaAnimal30Dias, setAlertaAnimal30Dias] = useState<{
+    animalId: number
+    numeroRegistro: string
+    especieNome: string
+    diasAtras: number
+    dataEvento: string
+    eventoNome: string
+    acaoPendente: () => void
+  } | null>(null)
 
   const handleUpdateTransporte = (novosDados: Partial<DadosTransporteFauna>) => {
     setDadosTransporte(prev => ({ ...prev, ...novosDados }))
@@ -111,6 +139,7 @@ export function ModalAgendarEvento({ isOpen, onClose, onSuccess, eventoParaEdita
         if (eventoParaEditar.tipoEvento === TipoEvento.Externo) {
           documentoEventoService.getAll(eventoParaEditar.id).then((docs) => {
             if (docs && docs.length > 0) {
+              setGerarDocumento(true)
               try {
                 const parsed = JSON.parse(docs[0].conteudoDadosJson || "{}")
                 if (parsed.destinatario || parsed.transporte) {
@@ -143,17 +172,36 @@ export function ModalAgendarEvento({ isOpen, onClose, onSuccess, eventoParaEdita
         // Reset form para criação
         setNome("")
         setDescricao("")
-        const now = new Date()
-        const inOneHour = new Date(now.getTime() + 60 * 60 * 1000)
-        const inTwoDays = new Date(now.getTime() + 48 * 60 * 60 * 1000)
+        let startDt: Date
+        let endDt: Date
 
-        setDataHoraInicio(inOneHour)
-        setDataHoraPrevisaoRetorno(inTwoDays)
+        if (dataInicialPredefinida) {
+          const partes = dataInicialPredefinida.split("-")
+          if (partes.length === 3) {
+            const ano = parseInt(partes[0], 10)
+            const mes = parseInt(partes[1], 10) - 1
+            const dia = parseInt(partes[2], 10)
+            startDt = new Date(ano, mes, dia, 9, 0, 0)
+            endDt = new Date(ano, mes, dia, 18, 0, 0)
+          } else {
+            const now = new Date()
+            startDt = new Date(now.getTime() + 60 * 60 * 1000)
+            endDt = new Date(now.getTime() + 48 * 60 * 60 * 1000)
+          }
+        } else {
+          const now = new Date()
+          startDt = new Date(now.getTime() + 60 * 60 * 1000)
+          endDt = new Date(now.getTime() + 48 * 60 * 60 * 1000)
+        }
+
+        setDataHoraInicio(startDt)
+        setDataHoraPrevisaoRetorno(endDt)
         setTipoEvento(TipoEvento.Interno)
         setSelectedAnimalIds(new Set())
         setResponsavel("")
+        setGerarDocumento(false)
 
-        const dataStr = `${now.toLocaleDateString("pt-BR")} – ${inTwoDays.toLocaleDateString("pt-BR")}`
+        const dataStr = `${startDt.toLocaleDateString("pt-BR")} – ${endDt.toLocaleDateString("pt-BR")}`
         setDadosTransporte({
           destTipo: "Expositor",
           destOutrosEspecificar: "",
@@ -194,15 +242,60 @@ export function ModalAgendarEvento({ isOpen, onClose, onSuccess, eventoParaEdita
         }
       })
 
-      // Carga de animais
+      // Carga de animais e histórico de eventos para a regra dos 30 dias
       setLoadingAnimais(true)
-      animalService
-        .getAllPaginated({ page: 1, pageSize: 250 })
-        .then((res) => {
-          setTodosAnimais(res.items || [])
+      Promise.all([
+        animalService.getAllPaginated({ page: 1, pageSize: 250, situacaoAnimal: 1 }).catch(() => ({ items: [] })),
+        eventoService.getAll().catch(() => []),
+        eventoAnimalService.getAll().catch(() => []),
+      ])
+        .then(([resAnimais, todosEventos, todosEventosAnimais]) => {
+          setTodosAnimais(resAnimais.items || [])
+
+          // Processar histórico de eventos por animal
+          const mapaHistorico = new Map<
+            number,
+            { eventoId: number; eventoNome: string; dataEvento: string; diasAtras: number }
+          >()
+
+          const eventoMap = new Map<number, (typeof todosEventos)[0]>()
+          todosEventos.forEach((ev) => eventoMap.set(ev.id, ev))
+
+          const hoje = new Date()
+
+          todosEventosAnimais.forEach((ea) => {
+            // Ignorar o próprio evento se estiver editando
+            if (eventoParaEditar && ea.eventoId === eventoParaEditar.id) return
+
+            const ev = eventoMap.get(ea.eventoId)
+            if (!ev) return
+
+            // Não considerar eventos cancelados
+            if (isStatusCancelado(ev.status)) return
+
+            const dataEv = new Date(ev.dataHoraInicio)
+            // Considerar eventos que já ocorreram ou estão ocorrendo
+            const diffMs = hoje.getTime() - dataEv.getTime()
+            const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+            // Se for dentro dos últimos 30 dias (ou se o evento for recente/futuro próximo com menos de 30 dias de intervalo)
+            if (diffDias >= 0 && diffDias <= 30) {
+              const existente = mapaHistorico.get(ea.animalId)
+              if (!existente || diffDias < existente.diasAtras) {
+                mapaHistorico.set(ea.animalId, {
+                  eventoId: ev.id,
+                  eventoNome: ev.nome || "Evento",
+                  dataEvento: dataEv.toLocaleDateString("pt-BR"),
+                  diasAtras: diffDias,
+                })
+              }
+            }
+          })
+
+          setHistoricoEventosAnimais(mapaHistorico)
         })
         .catch(() => {
-          toast.error("Erro ao carregar plantel de animais.")
+          toast.error("Erro ao carregar plantel de animais ou histórico de eventos.")
         })
         .finally(() => {
           setLoadingAnimais(false)
@@ -231,6 +324,9 @@ export function ModalAgendarEvento({ isOpen, onClose, onSuccess, eventoParaEdita
         animal.especieNome?.toLowerCase().includes(searchAnimal.toLowerCase()) ||
         animal.nomePopular?.toLowerCase().includes(searchAnimal.toLowerCase())
 
+      const isVivo = animal.situacao === 1 || String(animal.situacao) === "1" || String((animal as any).situacaoAnimal) === "1";
+      if (!isVivo && animal.situacao !== undefined) return false;
+
       const matchesEspecie =
         !selectedEspecie || String(animal.especieId) === selectedEspecie
 
@@ -245,40 +341,94 @@ export function ModalAgendarEvento({ isOpen, onClose, onSuccess, eventoParaEdita
       return {
         id,
         numeroRegistro: item?.numeroRegistro || `#${id}`,
+        numeroChip: item?.numeroChip || item?.numeroRegistro || `#${id}`,
         especieNome: item?.especieNome || item?.nomePopular || "Espécie não informada",
-        genero: item?.genero || "Não informado"
+        genero: formatarGenero(item?.genero)
       }
     })
   }, [selectedAnimalIds, todosAnimais])
 
-  // Toggle de seleção de animal
+  // Toggle de seleção de animal com checagem da regra dos 30 dias
   const toggleAnimal = (id: number) => {
     const next = new Set(selectedAnimalIds)
     if (next.has(id)) {
       next.delete(id)
-    } else {
-      next.add(id)
+      setSelectedAnimalIds(next)
+      return
     }
+
+    // Se está sendo marcado, verificar se participou de evento em menos de 30 dias
+    const historico = historicoEventosAnimais.get(id)
+    if (historico) {
+      const animal = todosAnimais.find((a) => a.id === id)
+      setAlertaAnimal30Dias({
+        animalId: id,
+        numeroRegistro: animal?.numeroRegistro ? `#${animal.numeroRegistro}` : `#${id}`,
+        especieNome: animal?.especieNome || animal?.nomePopular || "Espécie não informada",
+        diasAtras: historico.diasAtras,
+        dataEvento: historico.dataEvento,
+        eventoNome: historico.eventoNome,
+        acaoPendente: () => {
+          const updated = new Set(selectedAnimalIds)
+          updated.add(id)
+          setSelectedAnimalIds(updated)
+          setAlertaAnimal30Dias(null)
+        },
+      })
+      return
+    }
+
+    next.add(id)
     setSelectedAnimalIds(next)
   }
 
-  // Toggle de selecionar todos os animais filtrados
+  // Toggle de selecionar todos os animais filtrados com aviso se houver animais com eventos < 30 dias
   const toggleSelectAll = () => {
     const next = new Set(selectedAnimalIds)
     const allFilteredSelected = animaisFiltrados.length > 0 && animaisFiltrados.every((a) => next.has(a.id))
 
     if (allFilteredSelected) {
       animaisFiltrados.forEach((a) => next.delete(a.id))
-    } else {
-      animaisFiltrados.forEach((a) => next.add(a.id))
+      setSelectedAnimalIds(next)
+      return
     }
+
+    // Verificar se algum animal a ser incluído violaria o intervalo recomendado de 30 dias
+    const animaisComAlerta = animaisFiltrados.filter(
+      (a) => !next.has(a.id) && historicoEventosAnimais.has(a.id)
+    )
+
+    if (animaisComAlerta.length > 0) {
+      const primeiro = animaisComAlerta[0]
+      const hist = historicoEventosAnimais.get(primeiro.id)!
+      const plural = animaisComAlerta.length > 1
+      setAlertaAnimal30Dias({
+        animalId: primeiro.id,
+        numeroRegistro: plural
+          ? `${animaisComAlerta.map((a) => (a.numeroRegistro ? `#${a.numeroRegistro}` : `#${a.id}`)).join(", ")}`
+          : primeiro.numeroRegistro ? `#${primeiro.numeroRegistro}` : `#${primeiro.id}`,
+        especieNome: plural ? `${animaisComAlerta.length} animais` : primeiro.especieNome || primeiro.nomePopular || "Espécie",
+        diasAtras: hist.diasAtras,
+        dataEvento: hist.dataEvento,
+        eventoNome: hist.eventoNome,
+        acaoPendente: () => {
+          const updated = new Set(selectedAnimalIds)
+          animaisFiltrados.forEach((a) => updated.add(a.id))
+          setSelectedAnimalIds(updated)
+          setAlertaAnimal30Dias(null)
+        },
+      })
+      return
+    }
+
+    animaisFiltrados.forEach((a) => next.add(a.id))
     setSelectedAnimalIds(next)
   }
 
   // Colunas da tabela de animais
   const columns: ColumnDef<AnimalListItem>[] = [
     {
-      header: () => (
+      header: (
         <Checkbox
           checked={animaisFiltrados.length > 0 && animaisFiltrados.every((a) => selectedAnimalIds.has(a.id))}
           onCheckedChange={toggleSelectAll}
@@ -295,40 +445,67 @@ export function ModalAgendarEvento({ isOpen, onClose, onSuccess, eventoParaEdita
       ),
     },
     {
-      header: "Nº Registro / Chip",
+      header: "Nº de Registro",
       accessorKey: "numeroRegistro",
+      cell: (animal) => {
+        const hist = historicoEventosAnimais.get(animal.id)
+        return (
+          <div className="flex items-center gap-1.5">
+            <span className="font-semibold text-slate-900 dark:text-zinc-100 font-mono">
+              {animal.numeroRegistro ? `#${animal.numeroRegistro}` : `#${animal.id}`}
+            </span>
+            {hist && (
+              <span
+                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-800"
+                title={`Esteve no evento '${hist.eventoNome}' há ${hist.diasAtras} dia(s) (${hist.dataEvento})`}
+              >
+                <AlertTriangle className="h-3 w-3" />
+                {hist.diasAtras}d
+              </span>
+            )}
+          </div>
+        )
+      },
+    },
+    {
+      header: "Chip",
+      accessorKey: "numeroChip",
       cell: (animal) => (
-        <span className="font-semibold text-slate-900 font-mono">
-          #{animal.numeroRegistro || animal.id}
+        <span className="font-mono text-slate-700 dark:text-zinc-300">
+          {animal.numeroChip || "-"}
         </span>
       ),
     },
     {
-      header: "Espécie (Nome Científico)",
+      header: "Espécie",
       accessorKey: "especieNome",
       cell: (animal) => (
-        <span className="text-slate-800 italic font-medium">
+        <span className="text-slate-800 dark:text-zinc-200 italic font-medium">
           {animal.especieNome || animal.nomePopular || "Não informada"}
         </span>
       ),
     },
     {
-      header: "Gênero / Sexo",
+      header: "Gênero",
       accessorKey: "genero",
       cell: (animal) => (
-        <span className="text-slate-700">
-          {animal.genero || "Não informado"}
+        <span className="text-slate-700 dark:text-zinc-300">
+          {formatarGenero(animal.genero)}
         </span>
       ),
     },
     {
       header: "Localização Atual",
       accessorKey: "localizacaoHierarquia",
-      cell: (animal) => (
-        <span className="text-xs text-slate-500">
-          {animal.localizacaoHierarquia || "Sem localização"}
-        </span>
-      ),
+      cell: (animal) => {
+        const localRaw = animal.localizacaoNome || animal.localizacaoHierarquia || animal.instalacaoBioterioNome || "Sem localização";
+        const local = formatarLocalizacao(localRaw, "Sem localização")
+        return (
+          <span className="text-xs text-slate-700 dark:text-zinc-200 bg-slate-100 dark:bg-zinc-800/80 border border-slate-200 dark:border-zinc-700 px-2 py-0.5 rounded-md font-medium">
+            {local}
+          </span>
+        )
+      },
     },
   ]
 
@@ -404,18 +581,18 @@ export function ModalAgendarEvento({ isOpen, onClose, onSuccess, eventoParaEdita
       return
     }
 
-    // Se for evento externo, valida campos obrigatórios do formulário IMASUL
-    if (tipoEvento === TipoEvento.Externo) {
+    // Se for evento externo com geração de documento ativada, valida dados essenciais
+    if (tipoEvento === TipoEvento.Externo && gerarDocumento) {
       if (!dadosTransporte.destNome.trim()) {
-        toast.error("Informe o Nome / Razão Social do destinatário.")
+        toast.error("Informe o Nome / Razão Social do destinatário para o documento.")
         return
       }
       if (!dadosTransporte.destCpfCnpj.trim()) {
-        toast.error("Informe o CNPJ / CPF do destinatário.")
+        toast.error("Informe o CNPJ / CPF do destinatário para o documento.")
         return
       }
       if (!dadosTransporte.transporteRota.trim()) {
-        toast.error("Informe as rodovias utilizadas (rota) no transporte.")
+        toast.error("Informe as rodovias utilizadas (rota) no transporte para o documento.")
         return
       }
     }
@@ -460,8 +637,8 @@ export function ModalAgendarEvento({ isOpen, onClose, onSuccess, eventoParaEdita
           }
         }
 
-        // Se for externo, atualiza ou cria o DocumentoEvento
-        if (tipoEvento === TipoEvento.Externo) {
+        // Se for externo, atualiza ou cria o DocumentoEvento apenas se a emissão estiver habilitada
+        if (tipoEvento === TipoEvento.Externo && gerarDocumento) {
           const docs = await documentoEventoService.getAll(eventoParaEditar.id).catch(() => [])
           const modeloId = Number(modeloDocId) || (modelosDocumento[0]?.id ?? 1)
           const payloadJson = buildDocumentoPayloadJson()
@@ -500,8 +677,8 @@ export function ModalAgendarEvento({ isOpen, onClose, onSuccess, eventoParaEdita
       })
 
       if (res && res.success) {
-        // Se for evento externo, gera também o DocumentoEvento oficial
-        if (tipoEvento === TipoEvento.Externo && res.id) {
+        // Se for evento externo com geração de documento habilitada, gera também o DocumentoEvento oficial
+        if (tipoEvento === TipoEvento.Externo && gerarDocumento && res.id) {
           const modeloId = Number(modeloDocId) || (modelosDocumento[0]?.id ?? 1)
           const dadosDocJson = buildDocumentoPayloadJson()
 
@@ -537,7 +714,7 @@ export function ModalAgendarEvento({ isOpen, onClose, onSuccess, eventoParaEdita
         title={eventoParaEditar ? "Editar Agendamento de Evento" : "Agendar Novo Evento"}
         icon={<CalendarIcon className="h-5 w-5" />}
         iconBg="blue"
-        size="xl"
+        size="lg"
       >
         <div className="p-6">
           <FormLayoutBase
@@ -546,32 +723,48 @@ export function ModalAgendarEvento({ isOpen, onClose, onSuccess, eventoParaEdita
             submitLabel={submitting ? "Salvando..." : eventoParaEditar ? "Salvar Alterações" : "Salvar Agendamento"}
             checkIsDirty={() => !!nome || selectedAnimalIds.size > 0}
             titleFirstSection="Informações Gerais do Evento"
+            columnsClassName="grid-cols-1"
             extraSections={
               <>
-                {/* Se for Evento Externo: Seção Completa de Transporte de Fauna (IMASUL) */}
+                {/* Se for Evento Externo: Seção Opcional de Transporte de Fauna (IMASUL) */}
                 {tipoEvento === TipoEvento.Externo && (
                   <FormSection
                     title="Formulário de Transporte de Fauna (Oficial IMASUL)"
                     className="mt-6"
                   >
-                    <div className="bg-amber-50/70 border border-amber-200 p-3 rounded-lg text-xs text-amber-900 mb-4 flex items-start gap-2">
-                      <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
-                      <div>
-                        <strong>Atenção:</strong> Para eventos externos (Fora da UCDB), o preenchimento deste formulário
-                        é obrigatório para emissão do Termo de Autorização e Transporte Oficial de Fauna.
+                    <div className="bg-slate-50 border border-slate-200 dark:bg-zinc-900/50 dark:border-zinc-800 p-4 rounded-xl mb-4 space-y-3">
+                      <div className="flex items-center space-x-3">
+                        <Checkbox
+                          id="check-gerar-doc"
+                          checked={gerarDocumento}
+                          onCheckedChange={(checked) => setGerarDocumento(Boolean(checked))}
+                        />
+                        <div className="grid gap-1 leading-none">
+                          <Label
+                            htmlFor="check-gerar-doc"
+                            className="text-sm font-bold text-slate-800 dark:text-zinc-100 cursor-pointer"
+                          >
+                            Emitir Formulário Oficial de Transporte de Fauna para este evento
+                          </Label>
+                          <p className="text-xs text-slate-500 dark:text-zinc-400">
+                            Habilite para preencher os dados de destinatário, veículo e rota e gerar o documento oficial para download/impressão.
+                          </p>
+                        </div>
                       </div>
                     </div>
 
-                    <FormularioTransporteFauna
-                      dados={dadosTransporte}
-                      onChange={handleUpdateTransporte}
-                      animaisSelecionados={animaisSelecionadosInfo}
-                      onRemoverAnimal={(animalId) => {
-                        const next = new Set(selectedAnimalIds)
-                        next.delete(animalId)
-                        setSelectedAnimalIds(next)
-                      }}
-                    />
+                    {gerarDocumento && (
+                      <FormularioTransporteFauna
+                        dados={dadosTransporte}
+                        onChange={handleUpdateTransporte}
+                        animaisSelecionados={animaisSelecionadosInfo}
+                        onRemoverAnimal={(animalId) => {
+                          const next = new Set(selectedAnimalIds)
+                          next.delete(animalId)
+                          setSelectedAnimalIds(next)
+                        }}
+                      />
+                    )}
                   </FormSection>
                 )}
 
@@ -603,11 +796,7 @@ export function ModalAgendarEvento({ isOpen, onClose, onSuccess, eventoParaEdita
                       }}
                     />
 
-                    {selectedAnimalIds.size > 0 && (
-                      <span className="text-xs font-semibold bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-full border border-emerald-200">
-                        {selectedAnimalIds.size} animal(is) selecionado(s)
-                      </span>
-                    )}
+
                   </div>
 
                   <DataTable
@@ -620,85 +809,134 @@ export function ModalAgendarEvento({ isOpen, onClose, onSuccess, eventoParaEdita
               </>
             }
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField label="Nome do Evento" required className="col-span-full">
-                <Input
-                  value={nome}
-                  onChange={(e) => setNome(e.target.value)}
-                  placeholder="Ex: Exposição de Répteis na Feira de Ciências"
-                  disabled={submitting}
-                />
-              </FormField>
+            <div className="w-full space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                <FormField label="Nome do Evento" required className="w-full">
+                  <Input
+                    value={nome}
+                    onChange={(e) => setNome(e.target.value)}
+                    placeholder="Ex: Exposição de Serpentes na UCDB"
+                    maxLength={200}
+                    disabled={submitting}
+                    className="w-full"
+                  />
+                </FormField>
 
-              <FormField label="Tipo de Evento" required className="col-span-full">
-                <RadioGroup
-                  value={String(tipoEvento)}
-                  onValueChange={(val) => setTipoEvento(Number(val) as TipoEvento)}
-                  className="grid grid-cols-1 sm:grid-cols-2 gap-4"
-                  disabled={submitting}
-                >
-                  <div className={`flex items-start space-x-3 p-3.5 rounded-xl border transition-all ${
-                    tipoEvento === TipoEvento.Interno
-                      ? "border-blue-500 bg-blue-50/40 ring-1 ring-blue-500"
-                      : "border-slate-200 bg-white hover:bg-slate-50"
-                  }`}>
-                    <RadioGroupItem value={String(TipoEvento.Interno)} id="tipo-interno" className="mt-1" />
-                    <div>
-                      <Label htmlFor="tipo-interno" className="font-semibold text-slate-800 cursor-pointer text-sm">
-                        Evento Interno (Na UCDB)
+                <FormField label="Tipo de Evento" required className="w-full">
+                  <RadioGroup
+                    value={String(tipoEvento)}
+                    onValueChange={(val) => setTipoEvento(Number(val) as TipoEvento)}
+                    className="flex flex-wrap items-center gap-4 sm:gap-6 pt-2 w-full"
+                    disabled={submitting}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value={String(TipoEvento.Interno)} id="tipo-interno" />
+                      <Label htmlFor="tipo-interno" className="font-medium cursor-pointer text-sm whitespace-nowrap">
+                        Interno (Na UCDB)
                       </Label>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Realizado dentro das dependências do campus ou solário.
-                      </p>
                     </div>
-                  </div>
-
-                  <div className={`flex items-start space-x-3 p-3.5 rounded-xl border transition-all ${
-                    tipoEvento === TipoEvento.Externo
-                      ? "border-blue-500 bg-blue-50/40 ring-1 ring-blue-500"
-                      : "border-slate-200 bg-white hover:bg-slate-50"
-                  }`}>
-                    <RadioGroupItem value={String(TipoEvento.Externo)} id="tipo-externo" className="mt-1" />
-                    <div>
-                      <Label htmlFor="tipo-externo" className="font-semibold text-slate-800 cursor-pointer text-sm">
-                        Evento Externo (Fora da UCDB)
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value={String(TipoEvento.Externo)} id="tipo-externo" />
+                      <Label htmlFor="tipo-externo" className="font-medium cursor-pointer text-sm whitespace-nowrap">
+                        Externo (Fora da UCDB)
                       </Label>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Exige emissão de Guia/Formulário de Transporte de Fauna do IMASUL.
-                      </p>
                     </div>
-                  </div>
-                </RadioGroup>
-              </FormField>
+                  </RadioGroup>
+                </FormField>
+              </div>
 
-              <FormField label="Data e Horário de Início" required>
-                <DateTimePicker
-                  date={dataHoraInicio}
-                  setDate={setDataHoraInicio}
-                  disabled={submitting}
-                />
-              </FormField>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                <FormField label="Data e Horário de Início" required className="w-full">
+                  <DateTimePicker
+                    date={dataHoraInicio}
+                    setDate={setDataHoraInicio}
+                    disabled={submitting}
+                    className="w-full"
+                  />
+                </FormField>
 
-              <FormField label="Previsão de Retorno" required>
-                <DateTimePicker
-                  date={dataHoraPrevisaoRetorno}
-                  setDate={setDataHoraPrevisaoRetorno}
-                  disabled={submitting}
-                />
-              </FormField>
+                <FormField label="Previsão de Retorno dos Animais" required className="w-full">
+                  <DateTimePicker
+                    date={dataHoraPrevisaoRetorno}
+                    setDate={setDataHoraPrevisaoRetorno}
+                    disabled={submitting}
+                    className="w-full"
+                  />
+                </FormField>
+              </div>
 
-              <FormField label="Responsável pelo Evento" required className="col-span-full">
+              <div className="w-full">
                 <ResponsavelSelect
+                  label="Responsável pelo Evento"
                   value={responsavel}
                   onChange={setResponsavel}
                   placeholder="Selecione o pesquisador ou técnico responsável..."
                   disabled={submitting}
+                  required
+                  className="w-full"
                 />
-              </FormField>
+              </div>
             </div>
           </FormLayoutBase>
         </div>
       </ModalShell>
+
+      {/* Modal de Confirmação da Regra de 30 dias de Intervalo */}
+      {alertaAnimal30Dias && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+            onClick={() => setAlertaAnimal30Dias(null)}
+          />
+          <div className="relative w-full max-w-lg scale-100 rounded-2xl border border-amber-200 dark:border-amber-900/60 bg-white dark:bg-zinc-900 p-6 shadow-2xl transition-all animate-in fade-in zoom-in-95">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-950/80 text-amber-600 dark:text-amber-400">
+                <AlertTriangle className="h-6 w-6" />
+              </div>
+              <div className="flex-1 pt-0.5">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-zinc-100">
+                  Aviso: Intervalo entre Eventos
+                </h3>
+                <p className="mt-2 text-sm text-slate-600 dark:text-zinc-300 leading-relaxed">
+                  O ideal é que cada animal saia para eventos a cada <strong className="text-slate-800 dark:text-zinc-100 font-semibold">30 dias</strong>.
+                </p>
+                <div className="mt-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-xs text-amber-900 dark:text-amber-200 space-y-1">
+                  <div>
+                    Animal: <strong className="font-mono font-bold">{alertaAnimal30Dias.numeroRegistro}</strong> ({alertaAnimal30Dias.especieNome})
+                  </div>
+                  <div>
+                    Último evento: <strong>{alertaAnimal30Dias.eventoNome}</strong>
+                  </div>
+                  <div>
+                    Data do evento: <strong>{alertaAnimal30Dias.dataEvento}</strong> (há <strong>{alertaAnimal30Dias.diasAtras}</strong> dia{alertaAnimal30Dias.diasAtras !== 1 ? "s" : ""})
+                  </div>
+                </div>
+                <p className="mt-3 text-sm font-medium text-slate-800 dark:text-zinc-200">
+                  Tem certeza que deseja enviar o animal <span className="font-mono font-bold text-amber-700 dark:text-amber-400">{alertaAnimal30Dias.numeroRegistro}</span> para o evento mesmo ele tendo participado de um evento em menos de 30 dias?
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setAlertaAnimal30Dias(null)}
+                className="rounded-xl border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800 h-10 px-4"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={() => {
+                  alertaAnimal30Dias.acaoPendente()
+                }}
+                className="rounded-xl bg-amber-600 hover:bg-amber-700 text-white h-10 px-4 shadow-sm font-semibold"
+              >
+                Sim, incluir animal
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de Prévia do Documento se necessário */}
       {eventoParaEditar && (

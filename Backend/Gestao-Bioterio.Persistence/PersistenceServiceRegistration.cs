@@ -59,6 +59,7 @@ namespace Gestao_Bioterio.Persistence
             services.AddScoped<IEventoAnimalRepository, EventoAnimalRepository>();
             services.AddScoped<IDocumentoEventoRepository, DocumentoEventoRepository>();
             services.AddScoped<IRegistroObitoRepository, RegistroObitoRepository>();
+            services.AddScoped<IRelatorioReadRepository, RelatorioReadRepository>();
 
             return services;
         }
